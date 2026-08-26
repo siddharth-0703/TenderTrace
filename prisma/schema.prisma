@@ -43,6 +43,7 @@ model TenderRequirement {
   threshold        Float?
   expectedValue    String?
   unit             String?
+  rules            Json?    // Phase 2 canonical structured rule tree
   sourceDocumentId String?
   createdAt        DateTime @default(now())
 
@@ -104,6 +105,8 @@ model Evidence {
   sourceText         String?
   extractionMethod   String?
   confidence         Float?
+  validationStatus   String?  // VALID, EXPIRED, EXPIRING, UNKNOWN, INVALID
+  normalizedValue    Json?    // Structured canonical format
   createdAt          DateTime @default(now())
 
   complianceResults  ComplianceResult[]
@@ -115,9 +118,11 @@ model ComplianceResult {
   requirement         TenderRequirement @relation(fields: [requirementId], references: [id])
   evidenceId          String?
   evidence            Evidence?         @relation(fields: [evidenceId], references: [id])
-  status              String            // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, INSUFFICIENT_EVIDENCE, REQUIRES_OFFICER_REVIEW
+  status              String            // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, INSUFFICIENT_EVIDENCE, REQUIRES_OFFICER_REVIEW, CONFLICTING_EVIDENCE
   reason              String?
   confidence          Float?
+  evaluationTrace     Json?             // Structured evaluation tree trace
+  conflictingEvidence Json?             // Array of structured conflicts
   reviewStatus        String            @default("PENDING") // PENDING, REVIEWED, OVERRIDDEN
   originalResult      String?
   officerDecision     String?

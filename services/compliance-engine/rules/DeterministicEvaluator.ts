@@ -1,92 +1,104 @@
-export type Operator = ">=" | "<=" | ">" | "<" | "==" | "!=" | "IN" | "EXISTS" | "NOT_EXISTS";
-
-export interface EvaluationRule {
-    operator: Operator;
-    threshold?: number;
-    expectedValue?: string;
-    expectedList?: string[];
-}
+import { Rule, ConditionRule, LogicalRule, EvaluationNode } from "./RuleSchema";
 
 export type ComplianceStatus = 
     | "COMPLIANT" 
     | "NON_COMPLIANT" 
     | "PARTIALLY_COMPLIANT" 
     | "INSUFFICIENT_EVIDENCE" 
+    | "CONFLICTING_EVIDENCE"
     | "REQUIRES_OFFICER_REVIEW";
 
 export class DeterministicEvaluator {
-    evaluate(rule: EvaluationRule, evidenceNumericValue?: number | null, evidenceStringValue?: string | null): { status: ComplianceStatus, reason: string } {
+    evaluate(rule: Rule, evidenceList: any[]): { status: ComplianceStatus, trace: EvaluationNode } {
+        const trace = this.evaluateNode(rule, evidenceList);
+        
+        let status: ComplianceStatus = "REQUIRES_OFFICER_REVIEW";
+        if (trace.result === true) {
+            status = "COMPLIANT";
+        } else if (trace.result === false) {
+            status = "NON_COMPLIANT";
+        }
+
+        return { status, trace };
+    }
+
+    private evaluateNode(rule: Rule, evidenceList: any[]): EvaluationNode {
+        if (rule.type === "AND" || rule.type === "OR" || rule.type === "NOT") {
+            return this.evaluateLogical(rule as LogicalRule, evidenceList);
+        } else {
+            return this.evaluateCondition(rule as ConditionRule, evidenceList);
+        }
+    }
+
+    private evaluateLogical(rule: LogicalRule, evidenceList: any[]): EvaluationNode {
+        const children = rule.conditions.map(cond => this.evaluateNode(cond, evidenceList));
+        let result = false;
+
+        if (rule.type === "AND") {
+            result = children.every(c => c.result === true);
+        } else if (rule.type === "OR") {
+            result = children.some(c => c.result === true);
+        } else if (rule.type === "NOT") {
+            result = !children[0].result;
+        }
+
+        return {
+            type: rule.type,
+            result,
+            children
+        };
+    }
+
+    private evaluateCondition(rule: ConditionRule, evidenceList: any[]): EvaluationNode {
+        // Find evidence matching the field requested
+        const evidence = evidenceList.find(e => e.type === rule.field || (e.normalizedValue && e.normalizedValue.field === rule.field));
+        
+        const evidenceNumericValue = evidence?.numericValue ?? evidence?.normalizedValue?.amount;
+        const evidenceStringValue = evidence?.value;
+
         if (rule.operator === "EXISTS") {
-            if (evidenceStringValue || evidenceNumericValue !== undefined && evidenceNumericValue !== null) {
-                return { status: "COMPLIANT", reason: "Required evidence exists." };
-            }
-            return { status: "INSUFFICIENT_EVIDENCE", reason: "Required evidence does not exist." };
+            const exists = !!evidence;
+            return { type: "condition", field: rule.field, operator: rule.operator, result: exists, reason: exists ? "Evidence found" : "Evidence missing" };
         }
 
         if (rule.operator === "NOT_EXISTS") {
-            if (!evidenceStringValue && (evidenceNumericValue === undefined || evidenceNumericValue === null)) {
-                return { status: "COMPLIANT", reason: "Prohibited evidence does not exist." };
-            }
-            return { status: "NON_COMPLIANT", reason: "Prohibited evidence exists." };
+            const exists = !!evidence;
+            return { type: "condition", field: rule.field, operator: rule.operator, result: !exists, reason: !exists ? "Evidence not found as required" : "Prohibited evidence found" };
+        }
+
+        if (!evidence) {
+            return { type: "condition", field: rule.field, operator: rule.operator, result: false, reason: "Insufficient evidence to evaluate condition" };
         }
 
         if (rule.operator === "IN" && rule.expectedList) {
-            if (evidenceStringValue && rule.expectedList.includes(evidenceStringValue)) {
-                return { status: "COMPLIANT", reason: `Value '${evidenceStringValue}' is in expected list.` };
-            }
-            return { status: "NON_COMPLIANT", reason: `Value '${evidenceStringValue}' is not in expected list.` };
+            const match = evidenceStringValue && rule.expectedList.includes(evidenceStringValue);
+            return { type: "condition", field: rule.field, operator: rule.operator, result: !!match, actual: evidenceStringValue, required: rule.expectedList };
         }
 
         // Numeric comparisons
-        if (rule.threshold !== undefined && rule.threshold !== null) {
+        if (rule.value !== undefined && rule.value !== null && typeof rule.value === "number") {
             if (evidenceNumericValue === undefined || evidenceNumericValue === null) {
-                return { status: "INSUFFICIENT_EVIDENCE", reason: "Numeric evidence is missing for threshold comparison." };
+                return { type: "condition", field: rule.field, operator: rule.operator, result: false, reason: "Numeric evidence missing" };
             }
 
             const val = evidenceNumericValue;
-            const threshold = rule.threshold;
+            const threshold = rule.value;
+            let res = false;
 
             switch (rule.operator) {
-                case ">=":
-                    if (val >= threshold) return { status: "COMPLIANT", reason: `Value ${val} satisfies >= ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} is less than required ${threshold}.` };
-                case ">":
-                    if (val > threshold) return { status: "COMPLIANT", reason: `Value ${val} satisfies > ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} is not greater than required ${threshold}.` };
-                case "<=":
-                    if (val <= threshold) return { status: "COMPLIANT", reason: `Value ${val} satisfies <= ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} is greater than required ${threshold}.` };
-                case "<":
-                    if (val < threshold) return { status: "COMPLIANT", reason: `Value ${val} satisfies < ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} is not less than required ${threshold}.` };
-                case "==":
-                    if (val === threshold) return { status: "COMPLIANT", reason: `Value ${val} equals ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} does not equal ${threshold}.` };
-                case "!=":
-                    if (val !== threshold) return { status: "COMPLIANT", reason: `Value ${val} does not equal ${threshold}.` };
-                    return { status: "NON_COMPLIANT", reason: `Value ${val} equals ${threshold} (prohibited).` };
+                case ">=": res = val >= threshold; break;
+                case ">": res = val > threshold; break;
+                case "<=": res = val <= threshold; break;
+                case "<": res = val < threshold; break;
+                case "==": res = val === threshold; break;
+                case "!=": res = val !== threshold; break;
             }
+
+            return { type: "condition", field: rule.field, operator: rule.operator, result: res, actual: val, required: threshold };
         }
 
-        // String comparisons
-        if (rule.expectedValue !== undefined && rule.expectedValue !== null) {
-            if (evidenceStringValue === undefined || evidenceStringValue === null) {
-                return { status: "INSUFFICIENT_EVIDENCE", reason: "String evidence is missing for exact match." };
-            }
-
-            const val = evidenceStringValue.toLowerCase().trim();
-            const expected = rule.expectedValue.toLowerCase().trim();
-
-            switch (rule.operator) {
-                case "==":
-                    if (val === expected) return { status: "COMPLIANT", reason: `Value matches expected '${rule.expectedValue}'.` };
-                    return { status: "NON_COMPLIANT", reason: `Value '${evidenceStringValue}' does not match expected '${rule.expectedValue}'.` };
-                case "!=":
-                    if (val !== expected) return { status: "COMPLIANT", reason: `Value does not match prohibited '${rule.expectedValue}'.` };
-                    return { status: "NON_COMPLIANT", reason: `Value matches prohibited '${rule.expectedValue}'.` };
-            }
-        }
-
-        return { status: "REQUIRES_OFFICER_REVIEW", reason: "Rule could not be evaluated definitively." };
+        return { type: "condition", field: rule.field, operator: rule.operator, result: false, reason: "Rule could not be definitively evaluated" };
     }
 }
+
+
