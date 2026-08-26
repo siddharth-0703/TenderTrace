@@ -45,6 +45,10 @@ model TenderRequirement {
   unit             String?
   rules            Json?    // Phase 2 canonical structured rule tree
   sourceDocumentId String?
+  confidence       Json?    // Phase 3 RequirementConfidence (detection, classification, ruleExtraction)
+  sourceProvenance Json?    // Phase 3 SourceProvenance (page, section, originalText)
+  aiMetadata       Json?    // Phase 3 AIMetadata (provider, promptVersion, extractedAt)
+  reviewStatus     String   @default("DETECTED") // DETECTED, EXTRACTED, VALIDATED, REVIEW_REQUIRED, APPROVED, REJECTED, CONFLICTING
   createdAt        DateTime @default(now())
 
   results          ComplianceResult[]
