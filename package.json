@@ -11,9 +11,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node backend/server.ts",
     "test-slice": "ts-node tests/seed-vertical-slice.ts",
-    "postinstall": "prisma skills sync || exit 0",
+    "postinstall": "prisma generate",
     "test-requirement": "ts-node tests/test-requirement.ts",
-    "test-phase3": "ts-node tests/seed-phase3.ts"
+    "test-phase3": "ts-node tests/seed-phase3.ts",
+    "test-fraud": "ts-node tests/seed-fraud.ts"
   },
   "repository": {
     "type": "git",
@@ -34,9 +35,16 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.3.0",
     "jest": "^30.4.2",
-    "prisma": "^8.0.0-rc.11",
+    "prisma": "^6.19.3",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "zod": "^4.4.3"
   }
 }

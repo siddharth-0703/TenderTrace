@@ -96,6 +96,7 @@ async function run() {
         await prisma.document.create({
             data: {
                 bidId: bid.id, filename: "financials.pdf", hash: "hashX",
+                fileType: "application/pdf", fileSize: 1024, storageReference: "local/financials.pdf",
                 evidence: {
                     create: { type: "minimumTurnover", value: "7.2 Cr", numericValue: 72000000, confidence: 0.99 }
                 }

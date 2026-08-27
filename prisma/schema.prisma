@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -74,6 +74,17 @@ model Bid {
   status       String   @default("SUBMITTED")
   submittedAt  DateTime @default(now())
   documents    Document[]
+  fraudAnalyses FraudAnalysis[]
+}
+
+model FraudAnalysis {
+  id          String   @id @default(uuid())
+  bidId       String
+  bid         Bid      @relation(fields: [bidId], references: [id])
+  riskScore   Float    // 0 - 100
+  riskLevel   String   // LOW, MEDIUM, HIGH, CRITICAL
+  indicators  Json     // Array of detected fraud indicators
+  createdAt   DateTime @default(now())
 }
 
 model Document {
