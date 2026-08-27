@@ -9,6 +9,8 @@ export interface Tender {
   createdAt: string;
   updatedAt: string;
   requirements?: TenderRequirement[];
+  documents?: Document[];
+  bids?: Bid[];
   _count?: {
     documents: number;
     requirements: number;
@@ -75,6 +77,8 @@ export interface Bid {
   submissionDate: string;
   createdAt: string;
   updatedAt: string;
+  documents?: Document[];
+  tender?: Tender;
   _count?: {
     documents: number;
   };

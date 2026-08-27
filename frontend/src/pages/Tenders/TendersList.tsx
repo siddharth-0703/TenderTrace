@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { tenderApi } from '../../services/api/tenderApi';
 import type { Tender } from '../../types';
-import { Eye, FileText, FileQuestion } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -20,25 +20,30 @@ export default function TendersList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-h1" style={{ marginBottom: 0 }}>Tenders</h1>
-          <p className="text-muted">Manage and process tender document packages.</p>
+          <h1 className="text-h1" style={{ marginBottom: 0 }}>Tender Management</h1>
+          <p className="text-muted">Manage government tenders, requirements, and compliance.</p>
         </div>
+        <button className="btn btn-primary" onClick={() => navigate('/tenders/new')}>
+          <Plus size={16} /> Create New Tender
+        </button>
       </div>
 
       {tenders?.length === 0 ? (
-        <EmptyState title="No tenders found" message="Tenders will appear here when created." />
+        <EmptyState title="No tenders found" message="Create your first tender to begin." />
       ) : (
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th>ID / Title</th>
+                <th>Tender</th>
+                <th>Reference</th>
                 <th>Organization</th>
-                <th>Stats</th>
+                <th style={{ textAlign: 'center' }}>Docs</th>
+                <th style={{ textAlign: 'center' }}>Bids</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -46,28 +51,23 @@ export default function TendersList() {
                 <tr key={tender.id}>
                   <td>
                     <div style={{ fontWeight: 600 }}>{tender.title}</div>
-                    <div className="text-xs text-muted font-mono">{tender.id}</div>
+                  </td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {tender.referenceNo || tender.id.substring(0, 8)}
                   </td>
                   <td>{tender.department}</td>
+                  <td style={{ textAlign: 'center', fontWeight: 500 }}>{tender._count?.documents || 0}</td>
+                  <td style={{ textAlign: 'center', fontWeight: 500 }}>{tender._count?.bids || 0}</td>
                   <td>
-                    <div className="flex gap-4">
-                      <span className="flex items-center gap-1 text-xs text-muted">
-                        <FileText size={14} /> {tender._count?.documents || 0} Docs
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-muted">
-                        <FileQuestion size={14} /> {tender._count?.requirements || 0} Reqs
-                      </span>
-                    </div>
+                    <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
                   </td>
-                  <td>
-                    <StatusBadge status={tender.status || tender.processingStatus || 'PENDING'} />
-                  </td>
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     <button 
                       className="btn btn-outline"
+                      style={{ padding: '4px 12px', fontSize: '12px' }}
                       onClick={() => navigate(`/tenders/${tender.id}`)}
                     >
-                      <Eye size={16} /> View
+                      <Eye size={14} /> Open
                     </button>
                   </td>
                 </tr>

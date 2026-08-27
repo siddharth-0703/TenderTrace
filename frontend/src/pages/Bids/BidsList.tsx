@@ -20,10 +20,10 @@ export default function BidsList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-h1" style={{ marginBottom: 0 }}>Bids & Evidence</h1>
-          <p className="text-muted">Review submitted bids and mapped evidence compliance.</p>
+          <h1 className="text-h1" style={{ marginBottom: 0 }}>Bid Management</h1>
+          <p className="text-muted">Review submitted bids and map evidence to tender requirements.</p>
         </div>
       </div>
 
@@ -36,28 +36,37 @@ export default function BidsList() {
               <tr>
                 <th>Bid ID</th>
                 <th>Bidder</th>
+                <th>Tender</th>
+                <th>Submitted</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {bids?.map((bid: Bid) => (
                 <tr key={bid.id}>
                   <td>
-                    <div className="text-xs text-muted font-mono">{bid.id}</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)' }}>{bid.id.substring(0, 8)}</div>
                   </td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{bid.bidder?.name || 'Unknown Bidder'}</div>
                   </td>
+                  <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                     {bid.tender?.title || 'Unknown Tender'}
+                  </td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                     {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString() : 'N/A'}
+                  </td>
                   <td>
                     <StatusBadge status={bid.status || 'SUBMITTED'} />
                   </td>
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     <button 
                       className="btn btn-outline"
+                      style={{ padding: '4px 12px', fontSize: '12px' }}
                       onClick={() => navigate(`/bids/${bid.id}`)}
                     >
-                      <Eye size={16} /> View Compliance
+                      <Eye size={14} /> Open
                     </button>
                   </td>
                 </tr>
