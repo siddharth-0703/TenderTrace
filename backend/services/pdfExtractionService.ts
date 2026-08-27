@@ -31,15 +31,18 @@ export class PdfExtractionService {
             });
 
             // Invoke Python
-            const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
+            const pythonExecutable = process.env.PYTHON_EXECUTABLE || (process.platform === 'win32' ? 'python' : 'python3');
             
             const result = await new Promise<{status: string, pages: any[], pageCount: number, error?: string}>((resolve, reject) => {
                 execFile(pythonExecutable, [PYTHON_SCRIPT_PATH, doc.storageReference], (error, stdout, stderr) => {
+                    if (error && !stdout) {
+                        return reject(new Error(`Process execution failed: ${error.message}`));
+                    }
                     try {
                         const parsed = JSON.parse(stdout);
                         resolve(parsed);
                     } catch (parseError) {
-                        reject(new Error(`Failed to parse Python output: ${stdout || stderr}`));
+                        reject(new Error(`Failed to parse Python output. Error: ${error?.message || ''}. Stdout: ${stdout}. Stderr: ${stderr}`));
                     }
                 });
             });
@@ -63,7 +66,13 @@ export class PdfExtractionService {
             };
 
             const logFile = documentType === 'TENDER' ? 'tender.log' : 'bid.log';
-            const logPath = path.join(process.cwd(), 'logs', logFile);
+            const logDir = process.env.PDF_LOG_DIRECTORY || path.join(process.cwd(), 'logs');
+            try {
+                await fs.mkdir(logDir, { recursive: true });
+            } catch (e) {
+                // Ignore if it exists
+            }
+            const logPath = path.join(logDir, logFile);
             await fs.appendFile(logPath, JSON.stringify(logEntry) + '\n', 'utf8');
 
             // Update database

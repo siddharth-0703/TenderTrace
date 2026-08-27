@@ -1,6 +1,6 @@
 import sys
 import json
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF
 from normalizer import normalize_text
 import os
 
