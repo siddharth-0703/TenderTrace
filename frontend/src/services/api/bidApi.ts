@@ -1,44 +1,29 @@
 import apiClient from './apiClient';
-
-export interface Bid {
-  id: string;
-  bidderId: string;
-  tenderId: string;
-  status: string;
-  bidder: {
-    id: string;
-    name: string;
-    organization: string;
-  };
-  documents: {
-    id: string;
-    filename: string;
-    documentClass: string;
-    processingStatus: string;
-    evidence: any[];
-  }[];
-  tender: {
-    id: string;
-    title: string;
-    requirements: any[];
-  };
-  complianceResults?: any[];
-}
+import type { Bid, Document, RequirementEvidenceMatch } from '../../types';
 
 export const bidApi = {
   getBids: async (): Promise<Bid[]> => {
-    // Actually the backend doesn't have a GET /api/bids yet, I'll add one if needed, or just fetch via tender.
-    // Let's create a minimal GET /api/bids in server.ts later if needed. For now I'll mock it if it's missing,
-    // or we can just access it via the Tender details. Wait, I will just add GET /api/bids to server.ts.
     const { data } = await apiClient.get('/bids');
     return data;
   },
-  getBidDetails: async (id: string): Promise<Bid> => {
+  getBidDetails: async (id: string): Promise<Bid & { documents: Document[] }> => {
     const { data } = await apiClient.get(`/bids/${id}`);
     return data;
   },
-  processEvidence: async (id: string): Promise<any> => {
-    const { data } = await apiClient.post(`/bids/${id}/process-evidence`);
+  uploadDocuments: async (id: string, files: File[]): Promise<{ documents: Document[] }> => {
+    const formData = new FormData();
+    files.forEach(f => formData.append('files', f));
+    const { data } = await apiClient.post(`/bids/${id}/documents/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data;
+  },
+  matchBidAgainstTender: async (tenderId: string, bidId: string): Promise<any> => {
+    const { data } = await apiClient.post(`/tenders/${tenderId}/match-bid/${bidId}`);
+    return data;
+  },
+  getTenderBidMatches: async (tenderId: string, bidId: string): Promise<{ matches: RequirementEvidenceMatch[] }> => {
+    const { data } = await apiClient.get(`/tenders/${tenderId}/bids/${bidId}/matches`);
     return data;
   }
 };

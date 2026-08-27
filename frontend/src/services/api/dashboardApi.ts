@@ -1,13 +1,5 @@
 import apiClient from './apiClient';
-
-export interface DashboardStats {
-  tenders: number;
-  documents: number;
-  requirements: number;
-  bids: number;
-  reviewRequired: number;
-  conflicting: number;
-}
+import type { DashboardStats } from '../../types';
 
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {

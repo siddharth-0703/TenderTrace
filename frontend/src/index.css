@@ -281,7 +281,51 @@ tr:hover td {
 .flex-col { display: flex; flex-direction: column; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
 .gap-2 { gap: var(--space-2); }
 .gap-4 { gap: var(--space-4); }
 .mt-4 { margin-top: var(--space-4); }
 .mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    flex: 0 0 auto;
+  }
+  .sidebar-header {
+    display: none;
+  }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+  }
+  .sidebar-link {
+    padding: var(--space-3);
+    white-space: nowrap;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .topbar {
+    padding: 0 var(--space-4);
+  }
+  .page-container {
+    padding: var(--space-4);
+  }
+  .tabs-container {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .stat-card {
+    padding: var(--space-4);
+  }
+}
