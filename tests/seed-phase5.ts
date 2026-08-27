@@ -13,7 +13,7 @@ async function run() {
     await prisma.document.deleteMany();
     await prisma.bid.deleteMany();
     await prisma.bidder.deleteMany();
-    await prisma.tenderRequirement.updateMany({ data: { supersededById: null, supersedesId: null }});
+    await prisma.tenderRequirement.updateMany({ data: { supersededById: null }});
     await prisma.tenderRequirement.deleteMany();
     await prisma.tender.deleteMany();
 

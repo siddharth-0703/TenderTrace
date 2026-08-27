@@ -36,9 +36,13 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.3.0",
     "jest": "^30.4.2",
-    "prisma": "^8.0.0-rc.11",
+    "prisma": "^5.22.0",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "zod": "^4.4.3"
   }
 }
