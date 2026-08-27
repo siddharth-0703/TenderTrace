@@ -358,6 +358,38 @@ app.post("/api/bids/:id/analyze", async (req, res) => {
     }
 });
 
+// --- PHASE 9: MATCHING APIs ---
+import { TenderBidMatchingProcessor } from "../services/compliance-engine/matching/TenderBidMatchingProcessor";
+
+app.post("/api/tenders/:tenderId/match-bid/:bidId", async (req, res) => {
+    try {
+        const result = await TenderBidMatchingProcessor.processMatch(req.params.tenderId, req.params.bidId);
+        res.json(result);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/tenders/:tenderId/bids/:bidId/matches", async (req, res) => {
+    try {
+        // Fetch Tender Requirements
+        const requirements = await prisma.tenderRequirement.findMany({
+            where: { tenderId: req.params.tenderId },
+            include: {
+                matches: {
+                    include: { evidence: true }
+                },
+                results: {
+                    where: { evidence: { document: { bidId: req.params.bidId } } }
+                }
+            }
+        });
+        res.json(requirements);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

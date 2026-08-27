@@ -17,7 +17,10 @@
     "test-phase5": "ts-node tests/seed-phase5.ts",
     "process-bid": "ts-node tests/process-bid.ts",
     "verify-extraction-logs": "ts-node scripts/verify-extraction-logs.ts",
-    "test-phase8": "ts-node tests/phase8/test-extraction.ts"
+    "test-phase8": "ts-node tests/phase8/test-extraction.ts",
+    "test-phase9": "ts-node tests/phase9/test-phase9.ts",
+    "test-real": "ts-node tests/phase9/test-real-documents.ts",
+    "match-tender-bid": "ts-node scripts/match-tender-bid.ts"
   },
   "repository": {
     "type": "git",

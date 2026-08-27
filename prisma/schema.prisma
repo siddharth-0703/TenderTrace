@@ -60,6 +60,7 @@ model TenderRequirement {
   createdAt        DateTime @default(now())
 
   results          ComplianceResult[]
+  matches          RequirementEvidenceMatch[]
 }
 
 model Bidder {
@@ -127,6 +128,28 @@ model Evidence {
   createdAt          DateTime @default(now())
 
   complianceResults  ComplianceResult[]
+  matches            RequirementEvidenceMatch[]
+}
+
+model RequirementEvidenceMatch {
+  id              String            @id @default(uuid())
+
+  requirementId   String
+  requirement     TenderRequirement @relation(fields: [requirementId], references: [id])
+
+  evidenceId      String
+  evidence        Evidence          @relation(fields: [evidenceId], references: [id])
+
+  matchScore      Float
+
+  matchReasons    String
+
+  matchingTrace   String?
+
+  createdAt       DateTime          @default(now())
+
+  @@index([requirementId])
+  @@index([evidenceId])
 }
 
 model ComplianceResult {
