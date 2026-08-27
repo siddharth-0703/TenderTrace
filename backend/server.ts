@@ -1,16 +1,104 @@
 import express from "express";
+import cors from "cors";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import { ComplianceEngine } from "../services/compliance-engine/engine/ComplianceEngine";
 import { MockFraudAnalysisService } from "../services/fraud-engine/mock/MockFraudAnalysisService";
+import { TenderPackageProcessor } from "../services/compliance-engine/engine/TenderPackageProcessor";
+import { BidComplianceProcessor } from "../services/compliance-engine/evidence/BidComplianceProcessor";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
+
+// Setup Multer for file uploads
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const upload = multer({ storage });
 
 const prisma = new PrismaClient();
 const complianceEngine = new ComplianceEngine();
 const fraudEngine = new MockFraudAnalysisService();
+const packageProcessor = new TenderPackageProcessor();
+const bidProcessor = new BidComplianceProcessor();
+
+// --- DASHBOARD API ---
+app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+        const [tenders, documents, requirements, bids] = await Promise.all([
+            prisma.tender.count(),
+            prisma.document.count(),
+            prisma.tenderRequirement.count(),
+            prisma.bid.count()
+        ]);
+        
+        const reviewRequired = await prisma.tenderRequirement.count({
+            where: { reviewStatus: "REVIEW_REQUIRED" }
+        });
+
+        const conflicting = await prisma.tenderRequirement.count({
+            where: { reviewStatus: "CONFLICTING" }
+        });
+
+        res.json({
+            tenders,
+            documents,
+            requirements,
+            bids,
+            reviewRequired,
+            conflicting
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // --- TENDER APIs ---
+app.get("/api/tenders", async (req, res) => {
+    try {
+        const tenders = await prisma.tender.findMany({
+            include: {
+                _count: {
+                    select: { documents: true, requirements: true, bids: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(tenders);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/tenders/:id", async (req, res) => {
+    try {
+        const tender = await prisma.tender.findUnique({
+            where: { id: req.params.id },
+            include: {
+                documents: true,
+                requirements: {
+                    orderBy: { createdAt: 'asc' }
+                },
+                bids: {
+                    include: { bidder: true }
+                }
+            }
+        });
+        if (!tender) return res.status(404).json({ error: "Not found" });
+        res.json(tender);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post("/api/tenders", async (req, res) => {
     try {
         const tender = await prisma.tender.create({
@@ -22,22 +110,121 @@ app.post("/api/tenders", async (req, res) => {
     }
 });
 
-app.post("/api/tenders/:id/requirements", async (req, res) => {
+// --- DOCUMENT UPLOAD & PROCESSING ---
+app.post("/api/tenders/:id/documents/upload", upload.array('files'), async (req, res) => {
     try {
-        const reqData = req.body;
-        const requirement = await prisma.tenderRequirement.create({
-            data: {
-                ...reqData,
-                tenderId: req.params.id
-            }
-        });
-        res.status(201).json(requirement);
+        const tenderId = req.params.id;
+        const files = req.files as Express.Multer.File[];
+        
+        const createdDocs = [];
+        for (const file of files) {
+            const doc = await prisma.document.create({
+                data: {
+                    tenderId,
+                    filename: file.originalname,
+                    fileType: file.mimetype,
+                    fileSize: file.size,
+                    hash: file.filename, // Using generated filename as hash placeholder
+                    storageReference: file.path,
+                    processingStatus: "UPLOADED"
+                }
+            });
+            createdDocs.push(doc);
+        }
+        
+        res.status(201).json(createdDocs);
     } catch (err: any) {
-        res.status(400).json({ error: err.message });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post("/api/tenders/:id/process-package", async (req, res) => {
+    try {
+        const tenderId = req.params.id;
+        // Fetch all documents for this tender that haven't been fully processed
+        const docs = await prisma.document.findMany({
+            where: { tenderId, processingStatus: "UPLOADED" }
+        });
+        
+        const docIds = docs.map(d => d.id);
+        if (docIds.length === 0) {
+            return res.status(400).json({ error: "No documents to process" });
+        }
+
+        // Trigger Phase 4 Package Processor
+        await packageProcessor.processPackage(tenderId, docIds);
+        
+        res.json({ message: "Package processing completed successfully." });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- REQUIREMENT APIs ---
+app.get("/api/tenders/:id/requirements", async (req, res) => {
+    try {
+        const reqs = await prisma.tenderRequirement.findMany({
+            where: { tenderId: req.params.id },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.json(reqs);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put("/api/requirements/:id/approve", async (req, res) => {
+    try {
+        const requirement = await prisma.tenderRequirement.update({
+            where: { id: req.params.id },
+            data: { reviewStatus: "APPROVED" }
+        });
+        res.json(requirement);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 // --- BID APIs ---
+app.get("/api/bids", async (req, res) => {
+    try {
+        const bids = await prisma.bid.findMany({
+            include: { bidder: true, tender: true }
+        });
+        res.json(bids);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/bids/:id", async (req, res) => {
+    try {
+        const bid = await prisma.bid.findUnique({
+            where: { id: req.params.id },
+            include: {
+                bidder: true,
+                documents: {
+                    include: { evidence: true }
+                },
+                tender: {
+                    include: { requirements: true }
+                }
+            }
+        });
+        if (!bid) return res.status(404).json({ error: "Not found" });
+        
+        // Also fetch compliance results
+        const complianceResults = await prisma.complianceResult.findMany({
+            where: { requirement: { tenderId: bid.tenderId } },
+            include: { requirement: true, evidence: true }
+        });
+
+        res.json({ ...bid, complianceResults });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post("/api/bidders", async (req, res) => {
     try {
         const bidder = await prisma.bidder.create({
@@ -60,7 +247,17 @@ app.post("/api/bids", async (req, res) => {
     }
 });
 
-// --- ANALYSIS ORCHESTRATION ---
+// --- BID EVIDENCE & COMPLIANCE ORCHESTRATION ---
+app.post("/api/bids/:id/process-evidence", async (req, res) => {
+    try {
+        const bidId = req.params.id;
+        await bidProcessor.processBid(bidId);
+        res.json({ message: "Evidence processed and compliance evaluated successfully." });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post("/api/bids/:id/analyze", async (req, res) => {
     try {
         const bidId = req.params.id;
