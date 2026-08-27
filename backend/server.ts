@@ -1,9 +1,11 @@
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { PrismaClient } from "@prisma/client";
+import { PdfExtractionService } from "./services/pdfExtractionService";
 import { ComplianceEngine } from "../services/compliance-engine/engine/ComplianceEngine";
 import { MockFraudAnalysisService } from "../services/fraud-engine/mock/MockFraudAnalysisService";
 import { TenderPackageProcessor } from "../services/compliance-engine/engine/TenderPackageProcessor";
@@ -113,22 +115,39 @@ app.post("/api/tenders", async (req, res) => {
 // --- DOCUMENT UPLOAD & PROCESSING ---
 app.post("/api/tenders/:id/documents/upload", upload.array('files'), async (req, res) => {
     try {
-        const tenderId = req.params.id;
+        const tenderId = req.params.id as string;
         const files = req.files as Express.Multer.File[];
         
         const createdDocs = [];
         for (const file of files) {
+            // Generate SHA-256 Hash
+            const fileBuffer = require('fs').readFileSync(file.path);
+            const hashSum = crypto.createHash('sha256');
+            hashSum.update(fileBuffer);
+            const sha256 = hashSum.digest('hex');
+
+            // Duplicate detection
+            const existingDoc = await prisma.document.findFirst({ where: { hash: sha256, tenderId } });
+            if (existingDoc) {
+                createdDocs.push({ ...existingDoc, isDuplicate: true });
+                continue;
+            }
+
             const doc = await prisma.document.create({
                 data: {
                     tenderId,
                     filename: file.originalname,
                     fileType: file.mimetype,
                     fileSize: file.size,
-                    hash: file.filename, // Using generated filename as hash placeholder
+                    hash: sha256,
                     storageReference: file.path,
                     processingStatus: "UPLOADED"
                 }
             });
+            
+            // Start background extraction
+            PdfExtractionService.processDocument(doc.id, 'TENDER', tenderId).catch(console.error);
+            
             createdDocs.push(doc);
         }
         
@@ -137,6 +156,66 @@ app.post("/api/tenders/:id/documents/upload", upload.array('files'), async (req,
         res.status(500).json({ error: err.message });
     }
 });
+
+app.post("/api/bids/:id/documents/upload", upload.array('files'), async (req, res) => {
+    try {
+        const bidId = req.params.id as string;
+        const files = req.files as Express.Multer.File[];
+        
+        const createdDocs = [];
+        for (const file of files) {
+            const fileBuffer = require('fs').readFileSync(file.path);
+            const hashSum = crypto.createHash('sha256');
+            hashSum.update(fileBuffer);
+            const sha256 = hashSum.digest('hex');
+
+            const existingDoc = await prisma.document.findFirst({ where: { hash: sha256, bidId } });
+            if (existingDoc) {
+                createdDocs.push({ ...existingDoc, isDuplicate: true });
+                continue;
+            }
+
+            const doc = await prisma.document.create({
+                data: {
+                    bidId,
+                    filename: file.originalname,
+                    fileType: file.mimetype,
+                    fileSize: file.size,
+                    hash: sha256,
+                    storageReference: file.path,
+                    processingStatus: "UPLOADED"
+                }
+            });
+            
+            // Start background extraction
+            PdfExtractionService.processDocument(doc.id, 'BID', bidId).catch(console.error);
+            
+            createdDocs.push(doc);
+        }
+        
+        res.status(201).json(createdDocs);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/documents/:documentId/text", async (req, res) => {
+    try {
+        const doc = await prisma.document.findUnique({ where: { id: req.params.documentId } });
+        if (!doc) return res.status(404).json({ error: "Not found" });
+        
+        // This relies on the convenience cache in SQLite. If omitted, we'd read from .log files.
+        res.json({
+            documentId: doc.id,
+            pageCount: doc.pageCount,
+            status: doc.processingStatus,
+            extractedText: doc.extractedText
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 app.post("/api/tenders/:id/process-package", async (req, res) => {
     try {
