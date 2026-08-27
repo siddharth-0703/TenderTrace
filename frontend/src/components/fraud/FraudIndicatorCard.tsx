@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, AlertTriangle, Copy, FileSearch, Clock } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, AlertTriangle, Copy, Clock, Layers, FileText, Calendar } from 'lucide-react';
 import type { FraudIndicator } from '../../types/fraud';
 import { INDICATOR_META } from '../../types/fraud';
 import RiskLevelBadge from './RiskLevelBadge';
@@ -7,27 +7,33 @@ import EvidenceDrawer from './EvidenceDrawer';
 
 interface Props {
   indicator: FraudIndicator;
-  index: number;
+  index?: number;
 }
 
-const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  IDENTITY_MISMATCH:    AlertTriangle,
-  DOCUMENT_DUPLICATION: Copy,
-  METADATA_ANOMALY:     Clock,
-};
+function getIndicatorIcon(type: string) {
+  switch (type) {
+    case 'IDENTITY_MISMATCH':    return <AlertTriangle size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    case 'DOCUMENT_DUPLICATION': return <Copy size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    case 'METADATA_ANOMALY':     return <Clock size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    case 'COMPANY_INCONSISTENCY': return <Layers size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    case 'CROSS_BID_SIMILARITY': return <FileText size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    case 'SUSPICIOUS_DATE':      return <Calendar size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+    default:                     return <AlertTriangle size={16} style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />;
+  }
+}
 
-function IndicatorTypeLabel({ type }: { type: string }) {
+function IndicatorTypeLabel({ type, title }: { type: string; title?: string }) {
+  if (title) return <>{title}</>;
   const meta = INDICATOR_META[type as keyof typeof INDICATOR_META];
   return <>{meta?.label ?? type.replace(/_/g, ' ')}</>;
 }
 
-export default function FraudIndicatorCard({ indicator, index }: Props) {
+export default function FraudIndicatorCard({ indicator }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const levelCls = indicator.severity.toLowerCase();
   const meta = INDICATOR_META[indicator.type];
-  const Icon = TYPE_ICONS[indicator.type] ?? AlertTriangle;
 
   return (
     <>
@@ -45,9 +51,9 @@ export default function FraudIndicatorCard({ indicator, index }: Props) {
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setExpanded(ex => !ex); }}
         >
           <div className="indicator-card__title-row">
-            <Icon size={16} aria-hidden="true" style={{ color: 'var(--color-slate-400)', flexShrink: 0 }} />
+            {getIndicatorIcon(indicator.type)}
             <span className="indicator-card__type">
-              <IndicatorTypeLabel type={indicator.type} />
+              <IndicatorTypeLabel type={indicator.type} title={indicator.title} />
             </span>
             <RiskLevelBadge level={indicator.severity} />
           </div>
@@ -62,7 +68,25 @@ export default function FraudIndicatorCard({ indicator, index }: Props) {
             <div className="indicator-card__desc">
               <p>{indicator.description}</p>
 
-              {indicator.evidence.length > 0 && (
+              {indicator.structuredEvidence && indicator.structuredEvidence.length > 0 && (
+                <div style={{ marginTop: 'var(--space-3)' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-slate-500)', marginBottom: 'var(--space-2)' }}>
+                    Key Comparison Points
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                    {indicator.structuredEvidence.map((st, i) => (
+                      <div key={i} style={{ fontSize: '11px', background: 'var(--color-slate-100)', padding: '4px 8px', borderRadius: 4 }}>
+                        {st.field && <strong>{st.field}: </strong>}
+                        {st.value && <span style={{ color: 'var(--color-danger)' }}>{st.value} </span>}
+                        {st.expectedValue && <span style={{ color: 'var(--color-success)' }}>(expected: {st.expectedValue})</span>}
+                        {st.details && <span style={{ color: 'var(--color-slate-600)' }}> — {st.details}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {indicator.evidence && indicator.evidence.length > 0 && (
                 <div style={{ marginTop: 'var(--space-3)' }}>
                   <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-slate-500)', marginBottom: 'var(--space-2)' }}>
                     Evidence References
@@ -76,10 +100,10 @@ export default function FraudIndicatorCard({ indicator, index }: Props) {
               )}
             </div>
 
-            {meta?.recommendation && (
+            {(indicator.recommendation || meta?.recommendation) && (
               <div className="indicator-card__recommendation">
                 <AlertTriangle size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span><strong>Recommendation:</strong> {meta.recommendation}</span>
+                <span><strong>Recommendation:</strong> {indicator.recommendation || meta?.recommendation}</span>
               </div>
             )}
 
@@ -106,3 +130,4 @@ export default function FraudIndicatorCard({ indicator, index }: Props) {
     </>
   );
 }
+

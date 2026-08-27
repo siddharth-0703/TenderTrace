@@ -1,4 +1,4 @@
-import { ShieldAlert, FileText, Users, BarChart3 } from 'lucide-react';
+import { ShieldAlert, FileText } from 'lucide-react';
 
 export default function Dashboard() {
   return (

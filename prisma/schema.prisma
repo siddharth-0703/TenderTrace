@@ -78,13 +78,16 @@ model Bid {
 }
 
 model FraudAnalysis {
-  id          String   @id @default(uuid())
-  bidId       String
-  bid         Bid      @relation(fields: [bidId], references: [id])
-  riskScore   Float    // 0 - 100
-  riskLevel   String   // LOW, MEDIUM, HIGH, CRITICAL
-  indicators  Json     // Array of detected fraud indicators
-  createdAt   DateTime @default(now())
+  id                    String   @id @default(uuid())
+  bidId                 String
+  bid                   Bid      @relation(fields: [bidId], references: [id])
+  riskScore             Float    // 0 - 100
+  riskLevel             String   // LOW, MEDIUM, HIGH, CRITICAL
+  confidence            Float?   // 0 - 100% evidence-backed confidence
+  investigationPriority String?  // LOW, MEDIUM, HIGH, CRITICAL
+  indicators            Json     // Array of detected fraud indicators
+  correlatedFindings    Json?    // Array of correlated indicator clusters
+  createdAt             DateTime @default(now())
 }
 
 model Document {

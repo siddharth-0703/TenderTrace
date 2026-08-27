@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X, AlertTriangle, Copy, Clock, ExternalLink } from 'lucide-react';
+import { X, AlertTriangle, Copy, Clock, FileText, Layers, Calendar } from 'lucide-react';
 import type { FraudIndicator } from '../../types/fraud';
 import { INDICATOR_META } from '../../types/fraud';
 import RiskLevelBadge from './RiskLevelBadge';
@@ -9,16 +9,26 @@ interface Props {
   onClose: () => void;
 }
 
-const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  IDENTITY_MISMATCH:    AlertTriangle,
-  DOCUMENT_DUPLICATION: Copy,
-  METADATA_ANOMALY:     Clock,
-};
+function getDrawerIcon(type: string) {
+  switch (type) {
+    case 'IDENTITY_MISMATCH':    return <AlertTriangle size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    case 'DOCUMENT_DUPLICATION': return <Copy size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    case 'METADATA_ANOMALY':     return <Clock size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    case 'COMPANY_INCONSISTENCY': return <Layers size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    case 'CROSS_BID_SIMILARITY': return <FileText size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    case 'SUSPICIOUS_DATE':      return <Calendar size={18} style={{ color: 'var(--color-slate-500)' }} />;
+    default:                     return <AlertTriangle size={18} style={{ color: 'var(--color-slate-500)' }} />;
+  }
+}
 
 const DETECTOR_LABELS: Record<string, string> = {
-  IDENTITY_MISMATCH:    'IdentityMismatchDetector (Levenshtein)',
-  DOCUMENT_DUPLICATION: 'DocumentDuplicationDetector (SHA-256)',
-  METADATA_ANOMALY:     'MetadataAnomalyDetector (Timestamp)',
+  IDENTITY_MISMATCH:    'IdentityMismatchDetector (Levenshtein & Normalization)',
+  DOCUMENT_DUPLICATION: 'DocumentDuplicationDetector (SHA-256 Collision)',
+  METADATA_ANOMALY:     'MetadataAnomalyDetector (Forensic Timestamps)',
+  COMPANY_INCONSISTENCY: 'CompanyConsistencyDetector (Statutory & Corporate Reconciliation)',
+  CROSS_BID_SIMILARITY: 'CrossBidSimilarityDetector (N-Gram & Text Overlap)',
+  SUSPICIOUS_DATE:      'MetadataAnomalyDetector (Chronology & Validity Verification)',
+  STRUCTURAL_ANOMALY:   'DocumentForensics (Structural Analysis)',
 };
 
 function EvidenceItem({ label, value }: { label: string; value: string }) {
@@ -32,7 +42,6 @@ function EvidenceItem({ label, value }: { label: string; value: string }) {
 
 export default function EvidenceDrawer({ indicator, onClose }: Props) {
   const meta = INDICATOR_META[indicator.type];
-  const Icon = TYPE_ICONS[indicator.type] ?? AlertTriangle;
 
   // Close on Escape
   useEffect(() => {
@@ -52,13 +61,13 @@ export default function EvidenceDrawer({ indicator, onClose }: Props) {
       <div className="drawer" role="dialog" aria-modal="true" aria-label="Indicator evidence details">
         <div className="drawer-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <Icon size={18} aria-hidden="true" style={{ color: 'var(--color-slate-500)' }} />
+            {getDrawerIcon(indicator.type)}
             <div>
               <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-                {meta?.label ?? indicator.type.replace(/_/g, ' ')}
+                {indicator.title || meta?.label || indicator.type.replace(/_/g, ' ')}
               </div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-slate-500)' }}>
-                Indicator Detail & Evidence
+                Indicator Detail &amp; Structured Forensic Evidence
               </div>
             </div>
           </div>
@@ -70,88 +79,97 @@ export default function EvidenceDrawer({ indicator, onClose }: Props) {
         <div className="drawer-body">
           {/* Severity */}
           <div style={{ marginBottom: 'var(--space-5)' }}>
-            <div className="evidence-item__label" style={{ marginBottom: 'var(--space-2)' }}>Severity</div>
+            <div className="evidence-item__label" style={{ marginBottom: 'var(--space-2)' }}>Severity Level</div>
             <RiskLevelBadge level={indicator.severity} />
           </div>
 
           {/* Detector */}
           <EvidenceItem
             label="Detection Method"
-            value={DETECTOR_LABELS[indicator.type] ?? indicator.type}
+            value={indicator.detector || DETECTOR_LABELS[indicator.type] || indicator.type}
           />
 
           {/* Description */}
           <div className="evidence-item">
-            <div className="evidence-item__label">Description</div>
+            <div className="evidence-item__label">Finding Description</div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-slate-700)', lineHeight: 1.6 }}>
               {indicator.description}
             </div>
           </div>
 
-          {/* Evidence references */}
-          {indicator.evidence.length > 0 && (
+          {/* Structured Forensic Evidence */}
+          {indicator.structuredEvidence && indicator.structuredEvidence.length > 0 && (
             <div className="evidence-item">
-              <div className="evidence-item__label">Evidence References</div>
-              {indicator.evidence.map((ev, i) => (
-                <div key={i} className="evidence-item__value" style={{ marginBottom: 'var(--space-1)' }}>
-                  {ev}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Indicator-specific guidance */}
-          {indicator.type === 'DOCUMENT_DUPLICATION' && (
-            <div className="evidence-item">
-              <div className="evidence-item__label">How this was detected</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-slate-700)', lineHeight: 1.6 }}>
-                The SHA-256 cryptographic hash of the uploaded file was computed and compared
-                against all other document hashes submitted for this tender. Identical hashes
-                indicate byte-for-byte identical file content. Manual review is required to
-                determine whether the reuse is legitimate.
+              <div className="evidence-item__label">Structured Forensic Comparison Points</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                {indicator.structuredEvidence.map((st, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: 'var(--color-slate-50)',
+                      border: '1px solid var(--color-slate-200)',
+                      borderRadius: 6,
+                      padding: 'var(--space-3)',
+                      fontSize: 'var(--text-xs)'
+                    }}
+                  >
+                    {st.field && (
+                      <div><strong style={{ color: 'var(--color-slate-700)' }}>Field:</strong> <code>{st.field}</code></div>
+                    )}
+                    {st.value && (
+                      <div style={{ marginTop: 2 }}>
+                        <strong style={{ color: 'var(--color-slate-700)' }}>Observed Value:</strong> <span style={{ color: 'var(--color-danger)' }}>{st.value}</span>
+                      </div>
+                    )}
+                    {st.expectedValue && (
+                      <div style={{ marginTop: 2 }}>
+                        <strong style={{ color: 'var(--color-slate-700)' }}>Expected Value:</strong> <span style={{ color: 'var(--color-success)' }}>{st.expectedValue}</span>
+                      </div>
+                    )}
+                    {st.matchedBidId && (
+                      <div style={{ marginTop: 2 }}>
+                        <strong style={{ color: 'var(--color-slate-700)' }}>Matched Bid:</strong> <span className="font-mono">{st.matchedBidId}</span>
+                      </div>
+                    )}
+                    {st.details && (
+                      <div style={{ marginTop: 4, color: 'var(--color-slate-600)', fontStyle: 'italic' }}>
+                        {st.details}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {indicator.type === 'IDENTITY_MISMATCH' && (
+          {/* Evidence document references */}
+          {indicator.evidence && indicator.evidence.length > 0 && (
             <div className="evidence-item">
-              <div className="evidence-item__label">How this was detected</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-slate-700)', lineHeight: 1.6 }}>
-                The bidder's registered legal name was compared against entity names
-                extracted from submitted documents using edit-distance (Levenshtein) analysis.
-                A mismatch was detected beyond the acceptable threshold after normalising
-                common legal suffixes (Pvt Ltd, Limited, etc.).
-              </div>
-            </div>
-          )}
-
-          {indicator.type === 'METADATA_ANOMALY' && (
-            <div className="evidence-item">
-              <div className="evidence-item__label">How this was detected</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-slate-700)', lineHeight: 1.6 }}>
-                Document upload timestamps and extracted certificate issue dates were
-                compared against the official tender closing date. Anomalies include
-                post-deadline uploads, certificates issued after the closing date, and
-                suspicious simultaneous batch uploads.
+              <div className="evidence-item__label">Supporting Document / Bid Identifiers</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 'var(--space-1)' }}>
+                {indicator.evidence.map((ev, i) => (
+                  <span key={i} className="badge badge--neutral font-mono" style={{ fontSize: 11 }}>
+                    {ev}
+                  </span>
+                ))}
               </div>
             </div>
           )}
 
           {/* Recommendation */}
-          {meta?.recommendation && (
+          {(indicator.recommendation || meta?.recommendation) && (
             <div className="alert alert--warning" style={{ marginTop: 'var(--space-4)' }}>
               <AlertTriangle size={16} className="alert__icon" aria-hidden="true" />
               <div>
-                <div className="alert__title">Recommended Action</div>
-                {meta.recommendation}
+                <div className="alert__title">Recommended Officer Action</div>
+                {indicator.recommendation || meta?.recommendation}
               </div>
             </div>
           )}
 
           <div className="alert alert--info" style={{ marginTop: 'var(--space-4)' }}>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-slate-600)' }}>
-              This indicator is flagged for officer review. The system does not determine
-              fraud — the Procurement Officer is the final decision-maker.
+              This finding provides decision support for procurement evaluation. The Procurement Officer is the final authorized decision-maker.
             </div>
           </div>
         </div>
@@ -159,3 +177,4 @@ export default function EvidenceDrawer({ indicator, onClose }: Props) {
     </div>
   );
 }
+

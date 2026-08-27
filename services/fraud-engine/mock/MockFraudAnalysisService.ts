@@ -1,3 +1,5 @@
+import { CorrelatedFinding, FraudIndicator, InvestigationPriority, RiskLevel } from "../detectors/FraudIndicator";
+
 export interface FraudAnalysisInput {
     bidId: string;
     tenderId: string;
@@ -6,8 +8,12 @@ export interface FraudAnalysisInput {
 export interface FraudAnalysisResult {
     status: string;
     riskScore: number | null;
-    riskLevel: string | null;
-    indicators: any[];
+    riskLevel: RiskLevel | string | null;
+    confidence: number | null;
+    investigationPriority: InvestigationPriority | string | null;
+    indicators: FraudIndicator[];
+    correlatedFindings: CorrelatedFinding[];
+    summaryRecommendation?: string;
 }
 
 export interface FraudAnalysisService {
@@ -20,7 +26,10 @@ export class MockFraudAnalysisService implements FraudAnalysisService {
             status: "NOT_ANALYZED",
             riskScore: null,
             riskLevel: null,
-            indicators: []
+            confidence: null,
+            investigationPriority: null,
+            indicators: [],
+            correlatedFindings: []
         };
     }
 }

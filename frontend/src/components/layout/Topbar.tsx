@@ -1,6 +1,5 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { User } from 'lucide-react';
 
 const TITLES: Record<string, string> = {
   '/':            'Dashboard',

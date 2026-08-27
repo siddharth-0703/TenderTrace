@@ -7,6 +7,7 @@ const engine = new ComplianceEngine();
 
 async function run() {
     console.log("Cleaning database...");
+    await prisma.fraudAnalysis.deleteMany();
     await prisma.complianceResult.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.document.deleteMany();

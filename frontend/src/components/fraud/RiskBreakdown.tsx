@@ -1,7 +1,5 @@
 import type { FraudIndicator } from '../../types/fraud';
 import { SEVERITY_SCORE } from '../../types/fraud';
-import RiskLevelBadge from './RiskLevelBadge';
-import type { RiskLevel } from '../../types/fraud';
 
 interface Props {
   indicators: FraudIndicator[];
@@ -13,8 +11,12 @@ function IndicatorTypeLabel({ type }: { type: string }) {
     IDENTITY_MISMATCH:    'Identity Mismatch',
     DOCUMENT_DUPLICATION: 'Document Duplication',
     METADATA_ANOMALY:     'Metadata Anomaly',
+    COMPANY_INCONSISTENCY: 'Company Inconsistency',
+    CROSS_BID_SIMILARITY: 'Cross-Bid Similarity',
+    SUSPICIOUS_DATE:      'Suspicious Date',
+    STRUCTURAL_ANOMALY:   'Structural Anomaly',
   };
-  return <>{labels[type] ?? type}</>;
+  return <>{labels[type] ?? type.replace(/_/g, ' ')}</>;
 }
 
 export default function RiskBreakdown({ indicators, riskScore }: Props) {

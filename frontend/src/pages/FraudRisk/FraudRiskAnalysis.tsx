@@ -50,7 +50,7 @@ export default function FraudRiskAnalysis() {
     setRunning(true);
     setError(null);
     try {
-      const result = await runAnalysis(bidId);
+      await runAnalysis(bidId);
       // Re-load to get full analysis with all joins
       await load();
     } catch (e: any) {
@@ -179,8 +179,54 @@ export default function FraudRiskAnalysis() {
           <RiskScoreCard
             riskScore={analysis.riskScore}
             riskLevel={analysis.riskLevel}
+            confidence={analysis.confidence}
+            investigationPriority={analysis.investigationPriority}
             indicatorCount={analysis.indicators?.length ?? 0}
           />
+
+          {/* Correlated Clusters Section */}
+          {analysis.correlatedFindings && analysis.correlatedFindings.length > 0 && (
+            <div className="card" style={{ borderLeft: '4px solid var(--color-danger, #e53e3e)' }}>
+              <div className="card-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                  <ShieldAlert size={18} style={{ color: 'var(--color-danger, #e53e3e)' }} />
+                  <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>
+                    Correlated Risk Clusters ({analysis.correlatedFindings.length})
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {analysis.correlatedFindings.map((cluster, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: 'var(--color-slate-50)',
+                        border: '1px solid var(--color-slate-200)',
+                        borderRadius: 6,
+                        padding: 'var(--space-4)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                        <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-slate-800)' }}>
+                          {cluster.title}
+                        </span>
+                        <span className={`badge badge--${cluster.severity.toLowerCase()}`}>
+                          {cluster.severity}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-slate-700)', margin: '0 0 var(--space-2) 0', lineHeight: 1.5 }}>
+                        {cluster.description}
+                      </p>
+                      {cluster.explanation && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-slate-600)', fontStyle: 'italic' }}>
+                          💡 {cluster.explanation}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Two-column layout: Breakdown + Indicator List */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'start' }}>
@@ -199,9 +245,9 @@ export default function FraudRiskAnalysis() {
           <div className="card">
             <div className="card-body">
               <h3 style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>
-                Recommended Action
+                Recommended Officer Action
               </h3>
-              <p style={{ fontSize: 'var(--text-sm)' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-slate-700)', lineHeight: 1.6 }}>
                 {analysis.riskLevel === 'LOW' &&
                   'No significant anomalies were detected. Standard due diligence is recommended before finalising procurement.'}
                 {analysis.riskLevel === 'MEDIUM' &&

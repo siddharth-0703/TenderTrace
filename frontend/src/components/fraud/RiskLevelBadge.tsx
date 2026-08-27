@@ -1,23 +1,25 @@
-import type { RiskLevel } from '../../types/fraud';
+import type { IndicatorSeverity, RiskLevel } from '../../types/fraud';
 
 interface Props {
-  level: RiskLevel;
+  level: RiskLevel | IndicatorSeverity | string;
   size?: 'sm' | 'md';
 }
 
-const DOTS: Record<RiskLevel, string> = {
-  LOW:      '●',
-  MEDIUM:   '●',
-  HIGH:     '●',
-  CRITICAL: '●',
+const DOTS: Record<string, string> = {
+  INFORMATIONAL: 'ℹ',
+  LOW:           '●',
+  MEDIUM:        '●',
+  HIGH:          '●',
+  CRITICAL:      '●',
 };
 
 export default function RiskLevelBadge({ level, size = 'md' }: Props) {
-  const cls = level.toLowerCase() as Lowercase<RiskLevel>;
+  const cls = (level || 'LOW').toLowerCase();
   return (
-    <span className={`badge badge--${cls}`} aria-label={`Risk level: ${level}`}>
-      <span aria-hidden="true" style={{ fontSize: '0.6em' }}>{DOTS[level]}</span>
+    <span className={`badge badge--${cls} ${size === 'sm' ? 'badge--sm' : ''}`} aria-label={`Level: ${level}`}>
+      <span aria-hidden="true" style={{ fontSize: '0.6em', marginRight: 4 }}>{DOTS[level] || '●'}</span>
       {level}
     </span>
   );
 }
+

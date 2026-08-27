@@ -2,24 +2,63 @@
 // Frontend types — mirrors backend FraudAnalysis Prisma model + FraudIndicator
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type IndicatorSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type IndicatorSeverity = 'INFORMATIONAL' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IndicatorType = 'IDENTITY_MISMATCH' | 'DOCUMENT_DUPLICATION' | 'METADATA_ANOMALY';
+export type InvestigationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type IndicatorType =
+  | 'IDENTITY_MISMATCH'
+  | 'DOCUMENT_DUPLICATION'
+  | 'METADATA_ANOMALY'
+  | 'COMPANY_INCONSISTENCY'
+  | 'CROSS_BID_SIMILARITY'
+  | 'SUSPICIOUS_DATE'
+  | 'STRUCTURAL_ANOMALY';
+
+export interface StructuredEvidenceItem {
+  documentId?: string;
+  field?: string;
+  value?: string;
+  expectedValue?: string;
+  details?: string;
+  score?: number;
+  matchedBidId?: string;
+  matchedDocId?: string;
+  timestamp?: string;
+}
 
 export interface FraudIndicator {
   type: IndicatorType;
   severity: IndicatorSeverity;
+  title?: string;
   description: string;
   evidence: string[]; // document IDs / bid IDs / hash values cited
+  structuredEvidence?: StructuredEvidenceItem[];
+  detector?: string;
+  recommendation?: string;
+}
+
+export interface CorrelatedFinding {
+  type: string;
+  severity: IndicatorSeverity;
+  title: string;
+  description: string;
+  supportingIndicators: IndicatorType[];
+  evidence: string[];
+  structuredEvidence?: StructuredEvidenceItem[];
+  explanation?: string;
 }
 
 export interface FraudAnalysis {
   id: string;
   bidId: string;
-  riskScore: number;      // 0 – 100
+  riskScore: number;                  // 0 – 100
   riskLevel: RiskLevel;
+  confidence?: number | null;         // 0 – 100% evidence-backed confidence
+  investigationPriority?: InvestigationPriority | null; // LOW, MEDIUM, HIGH, CRITICAL
   indicators: FraudIndicator[];
-  createdAt: string;      // ISO date string
+  correlatedFindings?: CorrelatedFinding[] | null;
+  createdAt: string;                  // ISO date string
 }
 
 // ── Extended views (with joins from backend) ──────────────────────────────────
@@ -75,9 +114,30 @@ export const INDICATOR_META: Record<IndicatorType, IndicatorMeta> = {
     recommendation:
       'Manually review the document timeline and verify submission chronology against the official tender closing date.',
   },
+  COMPANY_INCONSISTENCY: {
+    label: 'Company Consistency Conflict',
+    recommendation:
+      'Cross-verify statutory credentials (GSTIN, PAN, Udyam) to ensure documents originate from the authorized legal entity and not a shell or distinct organization.',
+  },
+  CROSS_BID_SIMILARITY: {
+    label: 'Cross-Bid Similarity',
+    recommendation:
+      'Inspect proposal content and OEM authorization arrangements across matching bids to assess independent preparation and pricing validity.',
+  },
+  SUSPICIOUS_DATE: {
+    label: 'Suspicious Date / Chronology',
+    recommendation:
+      'Check certificate issue and validity expiry dates against tender closing milestones to detect expired or backdated submissions.',
+  },
+  STRUCTURAL_ANOMALY: {
+    label: 'Structural Document Anomaly',
+    recommendation:
+      'Perform forensic inspection of the document layout, page sequencing, and font layers to ensure no tampering has occurred.',
+  },
 };
 
 export const SEVERITY_SCORE: Record<IndicatorSeverity, number> = {
+  INFORMATIONAL: 0,
   LOW: 5,
   MEDIUM: 15,
   HIGH: 25,
@@ -92,3 +152,4 @@ export function getRiskInterpretation(level: RiskLevel): string {
     case 'CRITICAL': return 'Multiple critical indicators require immediate manual investigation before any procurement action.';
   }
 }
+

@@ -1,8 +1,7 @@
-import { FraudIndicator } from "./FraudIndicator";
+import { FraudIndicator, IndicatorSeverity, StructuredEvidenceItem } from "./FraudIndicator";
 
 /**
  * Levenshtein distance — pure TS, no external dependency.
- * Used to detect minor name variations (typos, abbreviations).
  */
 function levenshtein(a: string, b: string): number {
     const m = a.length;
@@ -25,14 +24,16 @@ function levenshtein(a: string, b: string): number {
 /**
  * Normalises an entity name for comparison:
  * - lowercase
- * - strips common legal suffixes (pvt ltd, limited, llp, etc.)
+ * - strips punctuation & common legal suffixes
  * - collapses whitespace
  */
-function normaliseName(name: string): string {
+export function normaliseEntityName(name: string): string {
+    if (!name) return "";
     return name
         .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\[\]"']/g, " ")
+        .replace(/\b(private\s+limited|pvt\s+ltd|pvt\s+limited|private\s+ltd|p\s+ltd)\b/g, "")
         .replace(/\b(pvt|private|ltd|limited|llp|inc|incorporated|co|corp|corporation)\b/g, "")
-        .replace(/[^a-z0-9\s]/g, "")
         .replace(/\s+/g, " ")
         .trim();
 }
@@ -40,6 +41,7 @@ function normaliseName(name: string): string {
 export interface BidderDoc {
     documentId: string;
     entityName: string; // value from Evidence record of type ENTITY_NAME / LEGAL_NAME
+    documentType?: string;
 }
 
 export interface IdentityMismatchInput {
@@ -52,24 +54,17 @@ export interface IdentityMismatchInput {
  * IDENTITY_MISMATCH detector
  *
  * Compares the bidder's registered legal name against entity names
- * extracted from each document. Flags a mismatch when the normalised
- * Levenshtein distance exceeds the threshold OR when names differ
- * significantly after normalisation.
- *
- * Severity:
- *   - distance > 10  → HIGH
- *   - distance 4–10  → MEDIUM
- *   - distance 1–3   → LOW  (minor typo/abbreviation, still flagged)
+ * extracted from each document.
  */
-const MISMATCH_THRESHOLD = 1; // flag anything with distance > 0 after normalisation
+const MISMATCH_THRESHOLD = 1;
 
 export class IdentityMismatchDetector {
     detect(input: IdentityMismatchInput): FraudIndicator[] {
         const indicators: FraudIndicator[] = [];
-        const normRegistered = normaliseName(input.registeredName);
+        const normRegistered = normaliseEntityName(input.registeredName);
 
         for (const doc of input.documentNames) {
-            const normDoc = normaliseName(doc.entityName);
+            const normDoc = normaliseEntityName(doc.entityName);
 
             // Skip if identical after normalisation
             if (normRegistered === normDoc) continue;
@@ -77,7 +72,7 @@ export class IdentityMismatchDetector {
             const dist = levenshtein(normRegistered, normDoc);
 
             if (dist > MISMATCH_THRESHOLD) {
-                let severity: FraudIndicator["severity"];
+                let severity: IndicatorSeverity;
                 if (dist > 10) {
                     severity = "HIGH";
                 } else if (dist > 3) {
@@ -86,11 +81,25 @@ export class IdentityMismatchDetector {
                     severity = "LOW";
                 }
 
+                const structured: StructuredEvidenceItem[] = [
+                    {
+                        documentId: doc.documentId,
+                        field: "entity_name",
+                        value: doc.entityName,
+                        expectedValue: input.registeredName,
+                        details: `Edit distance: ${dist}`
+                    }
+                ];
+
                 indicators.push({
                     type: "IDENTITY_MISMATCH",
                     severity,
+                    title: "Bidder Legal Identity Mismatch",
                     description: `Entity name in document "${doc.documentId}" is "${doc.entityName}" but registered name is "${input.registeredName}" (edit distance: ${dist}).`,
-                    evidence: [doc.documentId]
+                    evidence: [doc.documentId],
+                    structuredEvidence: structured,
+                    detector: "IdentityMismatchDetector",
+                    recommendation: "Cross-verify bidder identity with official MCA/GeM company master database."
                 });
             }
         }
@@ -98,3 +107,4 @@ export class IdentityMismatchDetector {
         return indicators;
     }
 }
+
