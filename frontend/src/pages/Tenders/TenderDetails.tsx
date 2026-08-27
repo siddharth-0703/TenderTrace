@@ -15,7 +15,7 @@ export default function TenderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'requirements' | 'bids' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'requirements' | 'bids' | 'compliance' | 'history'>('overview');
 
   const { data: tender, isLoading, isError, refetch } = useQuery({
     queryKey: ['tender', id],
@@ -60,7 +60,8 @@ export default function TenderDetails() {
     { id: 'documents', label: `Documents (${tender.documents?.length || 0})` },
     { id: 'requirements', label: `Requirements (${tender.requirements?.length || 0})` },
     { id: 'bids', label: `Bidders (${tender.bids?.length || 0})` },
-    { id: 'history', label: 'History' },
+    { id: 'compliance', label: 'Compliance' },
+    { id: 'history', label: 'Audit Trail' },
   ];
 
   return (
@@ -84,8 +85,29 @@ export default function TenderDetails() {
               <span>Created {new Date(tender.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
             <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
+          </div>
+        </div>
+
+        {/* Progress Tracker Stub */}
+        <div style={{ marginTop: '24px', padding: '16px', backgroundColor: 'var(--color-background)', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ color: 'var(--color-primary)' }}>Created</div>
+            <div style={{ color: tender.documents?.length ? 'var(--color-primary)' : 'inherit' }}>Docs Received</div>
+            <div style={{ color: tender.requirements?.length ? 'var(--color-primary)' : 'inherit' }}>Reqs Extracted</div>
+            <div style={{ color: tender.bids?.length ? 'var(--color-primary)' : 'inherit' }}>Bids Received</div>
+            <div>Compliance Evaluation</div>
+            <div>Officer Decision</div>
+          </div>
+          <div style={{ display: 'flex', marginTop: '12px', gap: '4px' }}>
+            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-primary)', borderRadius: '2px' }}></div>
+            <div style={{ height: '4px', flex: 1, backgroundColor: tender.documents?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
+            <div style={{ height: '4px', flex: 1, backgroundColor: tender.requirements?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
+            <div style={{ height: '4px', flex: 1, backgroundColor: tender.bids?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
+            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-border)', borderRadius: '2px' }}></div>
+            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-border)', borderRadius: '2px' }}></div>
           </div>
         </div>
       </div>
@@ -266,11 +288,11 @@ export default function TenderDetails() {
                   <tbody>
                     {tender.bids?.map((bid: any) => (
                       <tr key={bid.id}>
-                        <td style={{ fontWeight: 600 }}>{bid.bidder?.legalName || bid.id}</td>
+                        <td style={{ fontWeight: 600 }}>{bid.bidder?.name || bid.id}</td>
                         <td>
                           <StatusBadge status={bid.status} />
                         </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{new Date(bid.submittedAt).toLocaleDateString()}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString() : 'N/A'}</td>
                         <td style={{ textAlign: 'right' }}>
                            <button 
                              className="btn btn-primary"
@@ -289,9 +311,16 @@ export default function TenderDetails() {
           </div>
         )}
 
+        {activeTab === 'compliance' && (
+          <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <h3 className="text-h3">Compliance Overview</h3>
+            <p>Select a specific bid from the Bidders tab to view detailed compliance results and evidence tracing.</p>
+          </div>
+        )}
+
         {activeTab === 'history' && (
           <div className="card">
-            <h3 className="text-h3" style={{ marginBottom: '24px' }}>Activity History</h3>
+            <h3 className="text-h3" style={{ marginBottom: '24px' }}>Audit Trail</h3>
             <ActivityTimeline activities={activities || []} />
           </div>
         )}

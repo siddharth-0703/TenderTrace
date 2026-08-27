@@ -29,6 +29,7 @@ model Tender {
   requirements   TenderRequirement[]
   bids           Bid[]
   documents      Document[]
+  activityLogs   ActivityLog[]
 }
 
 model TenderRequirement {
@@ -83,6 +84,7 @@ model Bid {
   status       String   @default("SUBMITTED")
   submittedAt  DateTime @default(now())
   documents    Document[]
+  activityLogs ActivityLog[]
 }
 
 model Document {
@@ -108,6 +110,7 @@ model Document {
   extractionError    String?
 
   evidence           Evidence[]
+  activityLogs       ActivityLog[]
 }
 
 model Evidence {
@@ -169,4 +172,19 @@ model ComplianceResult {
   officerId           String?
   officerComment      String?
   timestamp           DateTime          @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  tenderId    String?
+  tender      Tender?  @relation(fields: [tenderId], references: [id])
+  bidId       String?
+  bid         Bid?     @relation(fields: [bidId], references: [id])
+  documentId  String?
+  document    Document? @relation(fields: [documentId], references: [id])
+  
+  type        String
+  message     String
+  metadata    String?  // Storing JSON as string for SQLite compatibility
+  createdAt   DateTime @default(now())
 }

@@ -12,6 +12,31 @@ import { MockFraudAnalysisService } from "../services/fraud-engine/mock/MockFrau
 import { TenderPackageProcessor } from "../services/compliance-engine/engine/TenderPackageProcessor";
 import { BidComplianceProcessor } from "../services/compliance-engine/evidence/BidComplianceProcessor";
 
+export class ActivityLogger {
+    static async log(data: {
+        tenderId?: string;
+        bidId?: string;
+        documentId?: string;
+        type: string;
+        message: string;
+        metadata?: any;
+    }) {
+        try {
+            await prisma.activityLog.create({
+                data: {
+                    tenderId: data.tenderId,
+                    bidId: data.bidId,
+                    documentId: data.documentId,
+                    type: data.type,
+                    message: data.message,
+                    metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+                }
+            });
+        } catch (error) {
+            console.error("Failed to log activity:", error);
+        }
+    }
+}
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -107,6 +132,13 @@ app.post("/api/tenders", async (req, res) => {
         const tender = await prisma.tender.create({
             data: req.body
         });
+        
+        await ActivityLogger.log({
+            tenderId: tender.id,
+            type: "TENDER_CREATED",
+            message: `Tender created: ${tender.title}`
+        });
+
         res.status(201).json(tender);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -146,6 +178,13 @@ app.post("/api/tenders/:id/documents/upload", upload.array('files'), async (req,
                 }
             });
             
+            await ActivityLogger.log({
+                tenderId,
+                documentId: doc.id,
+                type: "DOCUMENT_UPLOADED",
+                message: `Tender document uploaded: ${file.originalname}`
+            });
+
             // Start background extraction
             PdfExtractionService.processDocument(doc.id, 'TENDER', tenderId).catch(console.error);
             
@@ -188,6 +227,13 @@ app.post("/api/bids/:id/documents/upload", upload.array('files'), async (req, re
                 }
             });
             
+            await ActivityLogger.log({
+                bidId,
+                documentId: doc.id,
+                type: "BID_DOCUMENT_UPLOADED",
+                message: `Bid document uploaded: ${file.originalname}`
+            });
+
             // Start background extraction
             PdfExtractionService.processDocument(doc.id, 'BID', bidId).catch(console.error);
             
@@ -231,9 +277,21 @@ app.post("/api/tenders/:id/process-package", async (req, res) => {
             return res.status(400).json({ error: "No documents to process" });
         }
 
+        await ActivityLogger.log({
+            tenderId,
+            type: "TENDER_PACKAGE_PROCESSING_STARTED",
+            message: `Started processing package with ${docIds.length} documents`
+        });
+
         // Trigger Phase 4 Package Processor
         await packageProcessor.processPackage(tenderId, docIds);
         
+        await ActivityLogger.log({
+            tenderId,
+            type: "TENDER_PACKAGE_PROCESSED",
+            message: `Tender package processed successfully`
+        });
+
         res.json({ message: "Package processing completed successfully." });
     } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -259,6 +317,13 @@ app.put("/api/requirements/:id/approve", async (req, res) => {
             where: { id: req.params.id },
             data: { reviewStatus: "APPROVED" }
         });
+        
+        await ActivityLogger.log({
+            tenderId: requirement.tenderId,
+            type: "REQUIREMENT_APPROVED",
+            message: `Requirement approved: ${requirement.type}`
+        });
+
         res.json(requirement);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -321,6 +386,14 @@ app.post("/api/bids", async (req, res) => {
         const bid = await prisma.bid.create({
             data: req.body
         });
+
+        await ActivityLogger.log({
+            bidId: bid.id,
+            tenderId: bid.tenderId,
+            type: "BID_CREATED",
+            message: `Bid created for tender`
+        });
+
         res.status(201).json(bid);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -342,11 +415,23 @@ app.post("/api/bids/:id/analyze", async (req, res) => {
     try {
         const bidId = req.params.id;
         
+        await ActivityLogger.log({
+            bidId,
+            type: "COMPLIANCE_ANALYSIS_STARTED",
+            message: `Compliance analysis started`
+        });
+
         // 1. Run Compliance
         const complianceResult = await complianceEngine.evaluateBid(bidId);
         
         // 2. Run Fraud
         const fraudResult = await fraudEngine.analyze({ bidId, tenderId: "TBD" });
+
+        await ActivityLogger.log({
+            bidId,
+            type: "COMPLIANCE_ANALYSIS_COMPLETED",
+            message: `Compliance analysis completed`
+        });
 
         res.json({
             message: "Analysis Complete",
@@ -363,7 +448,24 @@ import { TenderBidMatchingProcessor } from "../services/compliance-engine/matchi
 
 app.post("/api/tenders/:tenderId/match-bid/:bidId", async (req, res) => {
     try {
-        const result = await TenderBidMatchingProcessor.processMatch(req.params.tenderId, req.params.bidId);
+        const { tenderId, bidId } = req.params;
+
+        await ActivityLogger.log({
+            tenderId,
+            bidId,
+            type: "BID_MATCH_STARTED",
+            message: `Bid matching started against tender`
+        });
+
+        const result = await TenderBidMatchingProcessor.processMatch(tenderId, bidId);
+        
+        await ActivityLogger.log({
+            tenderId,
+            bidId,
+            type: "BID_MATCH_COMPLETED",
+            message: `Bid matched against tender`
+        });
+
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -385,6 +487,46 @@ app.get("/api/tenders/:tenderId/bids/:bidId/matches", async (req, res) => {
             }
         });
         res.json(requirements);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- ACTIVITY APIs ---
+app.get("/api/activity", async (req, res) => {
+    try {
+        const activities = await prisma.activityLog.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            include: { tender: true, bid: { include: { bidder: true } } }
+        });
+        res.json(activities);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/tenders/:tenderId/activity", async (req, res) => {
+    try {
+        const activities = await prisma.activityLog.findMany({
+            where: { tenderId: req.params.tenderId },
+            orderBy: { createdAt: 'desc' },
+            include: { tender: true, bid: { include: { bidder: true } } }
+        });
+        res.json(activities);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/bids/:bidId/activity", async (req, res) => {
+    try {
+        const activities = await prisma.activityLog.findMany({
+            where: { bidId: req.params.bidId },
+            orderBy: { createdAt: 'desc' },
+            include: { tender: true, bid: { include: { bidder: true } } }
+        });
+        res.json(activities);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }

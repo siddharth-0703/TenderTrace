@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock, CheckCircle, UploadCloud, AlertTriangle, XCircle, Play, FileText } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
@@ -16,59 +16,84 @@ interface ActivityTimelineProps {
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {
   if (!activities || activities.length === 0) {
     return (
-      <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', backgroundColor: 'var(--color-background)', border: '1px dashed var(--color-border)', borderRadius: '8px' }}>
-        <Clock size={32} style={{ margin: '0 auto 12px auto', color: '#cbd5e1' }} />
-        <p>No activity recorded yet.</p>
+      <div style={{ 
+        padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)', 
+        backgroundColor: 'var(--color-background)', border: '1px dashed var(--color-border)', borderRadius: '8px' 
+      }}>
+        <Clock size={28} style={{ margin: '0 auto 10px auto', display: 'block', color: 'var(--color-border)' }} />
+        <p style={{ fontSize: '14px' }}>No activity recorded yet.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flow-root' }}>
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 -32px 0' }}>
-        {activities.map((activity, activityIdx) => (
-          <li key={activity.id}>
-            <div style={{ position: 'relative', paddingBottom: '32px' }}>
-              {activityIdx !== activities.length - 1 ? (
-                <span 
-                  style={{ position: 'absolute', top: '16px', left: '16px', marginLeft: '-1px', height: '100%', width: '2px', backgroundColor: 'var(--color-border)' }} 
-                  aria-hidden="true" 
-                />
-              ) : null}
-              <div style={{ position: 'relative', display: 'flex', gap: '12px' }}>
-                <div>
-                  <span style={{ 
-                    height: '32px', width: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    boxShadow: '0 0 0 8px white',
-                    backgroundColor: getIconColor(activity.type)
-                  }}>
-                    <Clock size={16} color="white" aria-hidden="true" />
-                  </span>
-                </div>
-                <div style={{ minWidth: 0, flex: 1, paddingTop: '6px', display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                  <div>
-                    <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500, margin: 0 }}>{activity.message}</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>{activity.type}</p>
-                  </div>
-                  <div style={{ textAlign: 'right', fontSize: '12px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
-                    <time dateTime={activity.createdAt}>
-                      {new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(activity.createdAt))}
-                    </time>
-                  </div>
-                </div>
-              </div>
+    <div>
+      {activities.map((activity, idx) => {
+        const { icon, bg } = getIconConfig(activity.type);
+        return (
+          <div key={activity.id} style={{ display: 'flex', gap: '14px', paddingBottom: idx < activities.length - 1 ? '20px' : '0', position: 'relative' }}>
+            {/* Timeline line */}
+            {idx < activities.length - 1 && (
+              <div style={{ 
+                position: 'absolute', top: '32px', left: '15px', width: '2px', 
+                height: 'calc(100% - 16px)', backgroundColor: 'var(--color-divider)' 
+              }} />
+            )}
+            {/* Icon */}
+            <div style={{ 
+              width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+              backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', zIndex: 1,
+            }}>
+              {icon}
             </div>
-          </li>
-        ))}
-      </ul>
+            {/* Content */}
+            <div style={{ flex: 1, paddingTop: '4px', minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>
+                  {activity.message}
+                </p>
+                <time 
+                  dateTime={activity.createdAt}
+                  style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}
+                >
+                  {formatTimeAgo(new Date(activity.createdAt))}
+                </time>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                {activity.type}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function getIconColor(type: string) {
-  if (type.includes('CREATED') || type.includes('UPLOADED')) return '#3b82f6';
-  if (type.includes('COMPLETED') || type.includes('PROCESSED') || type.includes('APPROVED')) return '#22c55e';
-  if (type.includes('FAILED')) return '#ef4444';
-  if (type.includes('STARTED')) return '#f59e0b';
-  return '#94a3b8';
+function getIconConfig(type: string) {
+  if (type.includes('UPLOADED'))   return { icon: <UploadCloud size={15} color="#1a73e8" />, color: '#1a73e8', bg: 'var(--color-info-bg)' };
+  if (type.includes('COMPLETED') || type.includes('PROCESSED') || type.includes('APPROVED'))
+    return { icon: <CheckCircle size={15} color="#188038" />, color: '#188038', bg: 'var(--color-success-bg)' };
+  if (type.includes('FAILED'))    return { icon: <XCircle size={15} color="#c5221f" />, color: '#c5221f', bg: 'var(--color-error-bg)' };
+  if (type.includes('STARTED') || type.includes('PROCESSING'))
+    return { icon: <Play size={15} color="#7c3aed" />, color: '#7c3aed', bg: '#f3e8fd' };
+  if (type.includes('CREATED'))   return { icon: <FileText size={15} color="#1a73e8" />, color: '#1a73e8', bg: 'var(--color-info-bg)' };
+  if (type.includes('WARNING') || type.includes('CONFLICT'))
+    return { icon: <AlertTriangle size={15} color="#e37400" />, color: '#e37400', bg: 'var(--color-warning-bg)' };
+  return { icon: <Clock size={15} color="var(--text-muted)" />, color: 'var(--text-muted)', bg: '#f1f3f4' };
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }

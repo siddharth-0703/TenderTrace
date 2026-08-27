@@ -1,5 +1,4 @@
-
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Props {
   title?: string;
@@ -13,13 +12,32 @@ export function ErrorState({
   onRetry 
 }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '200px' }}>
-      <AlertCircle className="mb-4" size={48} color="var(--color-error)" />
-      <h3 className="text-h3 mb-2">{title}</h3>
-      <p className="text-muted mb-4 max-w-md">{message}</p>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '48px 24px',
+      textAlign: 'center',
+      minHeight: '200px',
+    }}>
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '50%',
+        backgroundColor: 'var(--color-error-bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '20px',
+      }}>
+        <AlertCircle size={28} color="var(--color-error)" />
+      </div>
+      <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>{title}</h3>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '360px', marginBottom: onRetry ? '20px' : '0' }}>{message}</p>
       {onRetry && (
-        <button className="btn btn-primary" onClick={onRetry}>
-          Try Again
+        <button className="btn btn-outline" onClick={onRetry} style={{ gap: '8px' }}>
+          <RefreshCw size={14} /> Retry
         </button>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import { Loader2 } from 'lucide-react';
 
 interface Props {
@@ -7,9 +6,17 @@ interface Props {
 
 export function LoadingSpinner({ text = 'Loading...' }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-muted" style={{ minHeight: '200px' }}>
-      <Loader2 className="animate-spin mb-2" size={32} />
-      <span>{text}</span>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '48px',
+      minHeight: '280px',
+      color: 'var(--text-muted)',
+    }}>
+      <Loader2 className="animate-spin" size={28} style={{ marginBottom: '12px', color: 'var(--color-accent)' }} />
+      <span style={{ fontSize: '14px', fontWeight: 500 }}>{text}</span>
     </div>
   );
 }
