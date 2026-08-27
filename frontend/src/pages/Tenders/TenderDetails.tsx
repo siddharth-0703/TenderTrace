@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tenderApi } from '../../services/api/tenderApi';
-import { UploadCloud, CheckCircle2, PlayCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, CheckCircle2, PlayCircle, Loader2, AlertTriangle, XCircle } from 'lucide-react';
 
 export default function TenderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -116,6 +116,7 @@ export default function TenderDetails() {
                     <thead>
                       <tr>
                         <th>Filename</th>
+                        <th>Pages</th>
                         <th>Classification</th>
                         <th>Status</th>
                       </tr>
@@ -124,6 +125,7 @@ export default function TenderDetails() {
                       {tender.documents?.map((doc: any) => (
                         <tr key={doc.id}>
                           <td className="font-medium">{doc.filename}</td>
+                          <td className="text-sm font-mono text-muted">{doc.pageCount || '-'}</td>
                           <td>
                             {doc.documentClass ? (
                               <span className="badge badge-primary">{doc.documentClass}</span>
@@ -132,10 +134,17 @@ export default function TenderDetails() {
                             )}
                           </td>
                           <td>
-                            {doc.processingStatus === 'PROCESSED' ? (
-                              <span className="flex items-center gap-1 text-success text-xs font-bold"><CheckCircle2 size={14} /> PROCESSED</span>
+                            {doc.processingStatus === 'SUCCESS' || doc.processingStatus === 'PROCESSED' ? (
+                              <span className="flex items-center gap-1 text-success text-xs font-bold"><CheckCircle2 size={14} /> {doc.processingStatus}</span>
+                            ) : doc.processingStatus === 'PARTIAL' || doc.processingStatus === 'OCR_REQUIRED' ? (
+                              <span className="flex items-center gap-1 text-warning text-xs font-bold"><AlertTriangle size={14} /> {doc.processingStatus}</span>
+                            ) : doc.processingStatus === 'FAILED' ? (
+                              <span className="flex items-center gap-1 text-error text-xs font-bold"><XCircle size={14} /> FAILED</span>
                             ) : (
-                              <span className="badge badge-neutral">{doc.processingStatus}</span>
+                              <span className="badge badge-neutral flex items-center gap-1">
+                                {doc.processingStatus === 'EXTRACTING' && <Loader2 size={12} className="animate-spin" />}
+                                {doc.processingStatus}
+                              </span>
                             )}
                           </td>
                         </tr>

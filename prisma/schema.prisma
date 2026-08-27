@@ -101,6 +101,10 @@ model Document {
   extractionMethod   String?
   extractionConfidence Float?
   extractedText      String?  // Text content of the document
+  pageCount          Int?
+  extractionStartedAt DateTime?
+  extractionCompletedAt DateTime?
+  extractionError    String?
 
   evidence           Evidence[]
 }
