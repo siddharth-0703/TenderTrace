@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -43,11 +43,11 @@ model TenderRequirement {
   threshold        Float?
   expectedValue    String?
   unit             String?
-  rules            Json?    // Phase 2 canonical structured rule tree
+  rules            String?    // Phase 2 canonical structured rule tree
   sourceDocumentId String?
-  confidence       Json?    // Phase 3 RequirementConfidence (detection, classification, ruleExtraction)
-  sourceProvenance Json?    // Phase 3 SourceProvenance (page, section, originalText)
-  aiMetadata       Json?    // Phase 3 AIMetadata (provider, promptVersion, extractedAt)
+  confidence       String?    // Phase 3 RequirementConfidence (detection, classification, ruleExtraction)
+  sourceProvenance String?    // Phase 3 SourceProvenance (page, section, originalText)
+  aiMetadata       String?    // Phase 3 AIMetadata (provider, promptVersion, extractedAt)
   reviewStatus     String   @default("DETECTED") // DETECTED, EXTRACTED, VALIDATED, REVIEW_REQUIRED, APPROVED, REJECTED, CONFLICTING
   
   // Phase 4 Versioning
@@ -65,9 +65,9 @@ model TenderRequirement {
 model Bidder {
   id                   String   @id @default(uuid())
   legalName            String
-  registrationInfo     Json?
-  contactInformation   Json?
-  businessInformation  Json?
+  registrationInfo     String?
+  contactInformation   String?
+  businessInformation  String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   bids                 Bid[]
@@ -119,7 +119,7 @@ model Evidence {
   extractionMethod   String?
   confidence         Float?
   validationStatus   String?  // VALID, EXPIRED, EXPIRING, UNKNOWN, INVALID
-  normalizedValue    Json?    // Structured canonical format
+  normalizedValue    String?  // Structured canonical format
   createdAt          DateTime @default(now())
 
   complianceResults  ComplianceResult[]
@@ -134,8 +134,8 @@ model ComplianceResult {
   status              String            // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, INSUFFICIENT_EVIDENCE, REQUIRES_OFFICER_REVIEW, CONFLICTING_EVIDENCE
   reason              String?
   confidence          Float?
-  evaluationTrace     Json?             // Structured evaluation tree trace
-  conflictingEvidence Json?             // Array of structured conflicts
+  evaluationTrace     String?           // Structured evaluation tree trace
+  conflictingEvidence String?           // Array of structured conflicts
   reviewStatus        String            @default("PENDING") // PENDING, REVIEWED, OVERRIDDEN
   originalResult      String?
   officerDecision     String?

@@ -126,7 +126,7 @@ export class ComplianceEngine {
                     requirementId: req.id,
                     status: result.status,
                     reason: result.trace.reason ?? "Compound evaluation complete.",
-                    evaluationTrace: result.trace as unknown as Prisma.InputJsonValue
+                    evaluationTrace: JSON.stringify(result.trace)
                 }
             });
         }

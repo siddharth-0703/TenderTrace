@@ -37,7 +37,7 @@ export class CrossDocumentAnalyzer {
                         const doc = await prisma.document.findUnique({ where: { id: sourceDocId } });
                         if (doc && doc.documentClass === "CORRIGENDUM") {
                             // Phase 4 Correction: Only supersede if the AI metadata explicitly flags it as modifying this.
-                            const aiMetadata: any = req.aiMetadata;
+                            const aiMetadata: any = typeof req.aiMetadata === 'string' ? JSON.parse(req.aiMetadata) : req.aiMetadata;
                             if (aiMetadata && aiMetadata.modifiesRequirementType === req.type) {
                                 isCorrigendumOverride = true;
                             }

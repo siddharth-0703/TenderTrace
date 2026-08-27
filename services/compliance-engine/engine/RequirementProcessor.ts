@@ -63,22 +63,22 @@ export class RequirementProcessor {
                             type: data.type,
                             description: data.description,
                             mandatory: data.mandatory,
-                            rules: data.rule as any,
+                            rules: JSON.stringify(data.rule),
                             operator: "AI_EXTRACTED", // Legacy fallback
                             sourceDocumentId: documentId,
                             reviewStatus: reviewStatus,
-                            confidence: data.confidence as any,
-                            sourceProvenance: {
+                            confidence: JSON.stringify(data.confidence),
+                            sourceProvenance: JSON.stringify({
                                 documentId,
                                 pageNumber: candidate.pageNumber,
                                 section: candidate.sectionTitle,
                                 originalText: candidate.text
-                            } as any,
-                            aiMetadata: {
+                            }),
+                            aiMetadata: JSON.stringify({
                                 provider: "MockAIProvider",
                                 promptVersion: "REQUIREMENT_EXTRACTION_V1",
                                 extractedAt: new Date().toISOString()
-                            } as any
+                            })
                         }
                     });
                     

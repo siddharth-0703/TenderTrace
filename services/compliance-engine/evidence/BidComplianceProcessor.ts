@@ -51,7 +51,7 @@ export class BidComplianceProcessor {
                             value: ev.rawValue,
                             numericValue: ev.normalizedValue && typeof ev.normalizedValue === 'number' ? ev.normalizedValue : null,
                             confidence: ev.confidence,
-                            normalizedValue: ev.normalizedValue,
+                            normalizedValue: JSON.stringify(ev.normalizedValue),
                             validationStatus: "VALID" // Mocked pass-through for demo
                         }
                     });
