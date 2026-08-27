@@ -49,6 +49,14 @@ model TenderRequirement {
   sourceProvenance Json?    // Phase 3 SourceProvenance (page, section, originalText)
   aiMetadata       Json?    // Phase 3 AIMetadata (provider, promptVersion, extractedAt)
   reviewStatus     String   @default("DETECTED") // DETECTED, EXTRACTED, VALIDATED, REVIEW_REQUIRED, APPROVED, REJECTED, CONFLICTING
+  
+  // Phase 4 Versioning
+  version          Int      @default(1)
+  status           String   @default("ACTIVE") // ACTIVE, SUPERSEDED
+  supersededById   String?
+  supersededBy     TenderRequirement? @relation("RequirementVersions", fields: [supersededById], references: [id])
+  supersedes       TenderRequirement[] @relation("RequirementVersions")
+
   createdAt        DateTime @default(now())
 
   results          ComplianceResult[]
@@ -89,6 +97,7 @@ model Document {
   storageReference   String
   uploadTimestamp    DateTime @default(now())
   processingStatus   String   @default("UPLOADED") // PROCESSING, PROCESSED, FAILED, REVIEW_REQUIRED
+  documentClass      String?  // Phase 4: MAIN_TENDER, ELIGIBILITY, CORRIGENDUM, etc.
   extractionMethod   String?
   extractionConfidence Float?
   extractedText      String?  // Text content of the document

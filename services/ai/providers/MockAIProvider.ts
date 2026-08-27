@@ -67,11 +67,57 @@ export class MockAIProvider implements AIProvider {
             }];
         }
         
+        if (lowerText.includes("minimum turnover shall be ₹10 crore") && input.documentId.includes("corrigendum")) {
+            return [{
+                category: "FINANCIAL", type: "TURNOVER", description: input.text, mandatory: true,
+                rule: { type: "condition", field: "minimumTurnover", operator: ">=", value: 100000000, unit: "INR" },
+                confidence: { detection: 0.95, classification: 0.95, ruleExtraction: 0.95 },
+                // Mocking the specific AI output structure for a Corrigendum override
+            }] as any; 
+            // In a real scenario, we'd adjust AIRequirementOutputSchema to allow custom metadata.
+            // For now, we will intercept this back in the caller or rely on document type.
+        }
+
         if (lowerText.includes("minimum turnover shall be ₹10 crore")) {
             return [{
                 category: "FINANCIAL", type: "TURNOVER", description: input.text, mandatory: true,
                 rule: { type: "condition", field: "minimumTurnover", operator: ">=", value: 100000000, unit: "INR" },
                 confidence: { detection: 0.95, classification: 0.95, ruleExtraction: 0.95 }
+            }];
+        }
+
+        return [];
+    }
+
+    // PHASE 5: BIDDER EVIDENCE EXTRACTION
+    async extractEvidence(input: RequirementExtractionInput): Promise<any[]> {
+        const lowerText = input.text.toLowerCase();
+        
+        if (lowerText.includes("turnover") && lowerText.includes("6.2 crore")) {
+            return [{
+                field: "minimumTurnover",
+                rawValue: "6.2 Crore",
+                normalizedValue: 62000000,
+                currency: "INR",
+                confidence: 0.98
+            }];
+        }
+        
+        if (lowerText.includes("gst") && lowerText.includes("active")) {
+            return [{
+                field: "GST_CERTIFICATE",
+                rawValue: "ACTIVE",
+                normalizedValue: true,
+                confidence: 0.99
+            }];
+        }
+        
+        if (lowerText.includes("experience") && lowerText.includes("7 years")) {
+            return [{
+                field: "similarCompletedWorks", // Mapping to the experience rule field
+                rawValue: "7 years",
+                normalizedValue: 7,
+                confidence: 0.95
             }];
         }
 

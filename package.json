@@ -13,7 +13,9 @@
     "test-slice": "ts-node tests/seed-vertical-slice.ts",
     "postinstall": "prisma skills sync || exit 0",
     "test-requirement": "ts-node tests/test-requirement.ts",
-    "test-phase3": "ts-node tests/seed-phase3.ts"
+    "test-phase3": "ts-node tests/seed-phase3.ts",
+    "test-phase5": "ts-node tests/seed-phase5.ts",
+    "process-bid": "ts-node tests/process-bid.ts"
   },
   "repository": {
     "type": "git",
