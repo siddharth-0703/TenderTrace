@@ -55,6 +55,29 @@ export default function TenderDetails() {
     await uploadMutation.mutateAsync(files);
   };
 
+  const handleAddBidder = async () => {
+    try {
+      // Create a mock bidder for testing
+      const bidderRes = await fetch('http://localhost:3000/api/bidders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `Mock Bidder ${Math.floor(Math.random() * 1000)}`, email: 'mock@example.com' })
+      });
+      const bidder = await bidderRes.json();
+
+      // Create a bid for this tender
+      await fetch('http://localhost:3000/api/bids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenderId: id, bidderId: bidder.id })
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['tender', id] });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'documents', label: `Documents (${tender.documents?.length || 0})` },
@@ -265,7 +288,7 @@ export default function TenderDetails() {
                 <h3 className="text-h3" style={{ margin: 0 }}>Associated Bidders</h3>
                 <p className="text-muted" style={{ fontSize: '14px', marginTop: '4px' }}>Manage and evaluate incoming bids.</p>
               </div>
-              <button className="btn btn-outline">
+              <button className="btn btn-outline" onClick={handleAddBidder}>
                 <Plus size={16} /> Add Bidder
               </button>
             </div>

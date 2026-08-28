@@ -269,7 +269,7 @@ app.post("/api/tenders/:id/process-package", async (req, res) => {
         const tenderId = req.params.id;
         // Fetch all documents for this tender that haven't been fully processed
         const docs = await prisma.document.findMany({
-            where: { tenderId, processingStatus: "UPLOADED" }
+            where: { tenderId, processingStatus: { in: ["UPLOADED", "SUCCESS"] } }
         });
         
         const docIds = docs.map(d => d.id);
