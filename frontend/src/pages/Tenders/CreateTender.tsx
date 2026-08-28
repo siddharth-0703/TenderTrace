@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, FilePlus, CheckCircle2 } from 'lucide-react';
 
 export default function CreateTender() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [formData, setFormData] = useState({
     title: '',
     tenderNumber: '',
     organization: '',
-    description: ''
+    description: '',
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -25,153 +25,172 @@ export default function CreateTender() {
           title: data.title,
           tenderNumber: data.tenderNumber,
           organization: data.organization,
-          description: data.description
+          description: data.description,
         }),
       });
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create tender');
+        throw new Error(errorData.error || 'Failed to create tender package');
       }
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tenders'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       navigate(`/tenders/${data.id}`);
     },
     onError: (err: Error) => {
       setError(err.message);
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.tenderNumber || !formData.organization) {
-      setError('Please fill in all required fields.');
+      setError('Please fill in all mandatory fields indicated with an asterisk (*).');
       return;
     }
+    setError(null);
     mutation.mutate(formData);
   };
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          className="btn btn-outline" 
-          style={{ padding: '8px', border: 'none', background: 'none' }} 
-          onClick={() => navigate('/tenders')}
-        >
-           <ArrowLeft size={20} color="var(--text-secondary)" />
-        </button>
-        <div>
-          <h1 className="text-h1" style={{ marginBottom: 0 }}>Create Tender</h1>
-          <p className="text-muted">Initialize a new procurement case file.</p>
+      {/* ── Breadcrumb & Navigation ── */}
+      <div className="breadcrumb">
+        <Link to="/tenders">Tenders</Link>
+        <span className="sep">›</span>
+        <span className="current">Create Tender Package</span>
+      </div>
+
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate('/tenders')}
+            aria-label="Back to tenders list"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <h1>Initialize Procurement Package</h1>
+            <div className="subtitle">
+              Set up statutory identifiers and parameters to begin extracting requirement rules
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card">
         {error && (
-          <div className="alert-box alert-error" style={{ margin: '16px', borderRadius: '4px' }}>
+          <div className="alert-box alert-error" style={{ margin: '20px 24px 0 24px' }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Section 1: Tender Information */}
-          <div style={{ padding: '32px', borderBottom: '1px solid var(--color-border)' }}>
-            <h2 className="text-h3" style={{ marginBottom: '24px', fontSize: '16px', color: 'var(--color-primary)' }}>1. Tender Information</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="card-body">
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-slate-900)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FilePlus size={18} color="var(--color-navy-500)" />
+              1. Statutory Procurement Details
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                  Tender Title <span style={{ color: 'var(--color-error)' }}>*</span>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-slate-700)' }}>
+                  Tender Title <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
-                <input 
-                  type="text" 
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontSize: '14px' }}
-                  placeholder="e.g. Procurement of Network Infrastructure"
+                <input
+                  type="text"
+                  className="input"
+                  style={{ width: '100%' }}
+                  placeholder="e.g. Procurement of Network Routing & Optical Switching Infrastructure"
                   value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
                 />
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                    Reference Number <span style={{ color: 'var(--color-error)' }}>*</span>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-slate-700)' }}>
+                    GeM Reference Number <span style={{ color: 'var(--color-danger)' }}>*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontFamily: 'monospace', fontSize: '14px' }}
-                    placeholder="e.g. GEM/2026/IT/042"
+                  <input
+                    type="text"
+                    className="input font-mono"
+                    style={{ width: '100%' }}
+                    placeholder="e.g. GEM/2026/B/89420"
                     value={formData.tenderNumber}
-                    onChange={(e) => setFormData({...formData, tenderNumber: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, tenderNumber: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                    Issuing Department <span style={{ color: 'var(--color-error)' }}>*</span>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-slate-700)' }}>
+                    Procuring Entity / Ministry <span style={{ color: 'var(--color-danger)' }}>*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontSize: '14px' }}
-                    placeholder="e.g. Department of Electronics"
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    placeholder="e.g. Ministry of Electronics & IT"
                     value={formData.organization}
-                    onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                    required
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                  Description (Optional)
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-slate-700)' }}>
+                  Scope of Work &amp; Description
                 </label>
-                <textarea 
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', minHeight: '80px', fontSize: '14px' }}
-                  placeholder="Brief summary of the tender scope..."
+                <textarea
+                  className="input"
+                  style={{ width: '100%', minHeight: '90px', resize: 'vertical' }}
+                  placeholder="Summary of supply, delivery timelines, qualifying criteria, or special bid conditions..."
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
             </div>
           </div>
 
-          {/* Section 2: Procurement Timeline (Stubbed) */}
-          <div style={{ padding: '32px', borderBottom: '1px solid var(--color-border)', opacity: 0.5 }}>
-            <h2 className="text-h3" style={{ marginBottom: '8px', fontSize: '16px', color: 'var(--color-primary)' }}>2. Procurement Timeline</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>Timeline management will be available in a future update.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                    Publication Date
-                  </label>
-                  <input type="date" disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontSize: '14px', backgroundColor: 'var(--color-background)' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                    Closing Date
-                  </label>
-                  <input type="date" disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontSize: '14px', backgroundColor: 'var(--color-background)' }} />
-                </div>
-            </div>
-          </div>
-
-          <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'flex-end', gap: '16px', backgroundColor: 'var(--color-background)' }}>
-            <button 
-              type="button" 
-              className="btn btn-outline" 
-              style={{ backgroundColor: 'white' }}
+          <div
+            style={{
+              padding: '16px 24px',
+              backgroundColor: 'var(--color-slate-50)',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
               onClick={() => navigate('/tenders')}
-              disabled={mutation.isPending}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? <Loader2 className="animate-spin" size={16} /> : null}
-              {mutation.isPending ? 'Creating...' : 'Create Tender Workspace'}
-              {!mutation.isPending && <ArrowRight size={16} />}
+              {mutation.isPending ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Creating Package…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={15} />
+                  Initialize &amp; Proceed to Upload
+                </>
+              )}
             </button>
           </div>
         </form>

@@ -1,75 +1,115 @@
-import { useLocation } from 'react-router-dom';
-import { Search, Bell, ChevronRight } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
+import { Search, Bell, ChevronRight, Menu } from 'lucide-react';
 
-export function Header() {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export function Header({ onToggleSidebar }: HeaderProps) {
   const location = useLocation();
-  
-  const getBreadcrumbs = (): string[] => {
+
+  const getBreadcrumbs = (): { label: string; path?: string }[] => {
     const path = location.pathname;
-    if (path === '/') return ['Overview'];
-    if (path === '/tenders/new') return ['Tenders', 'New Tender'];
-    if (path.startsWith('/tenders/')) return ['Tenders', 'Tender Details'];
-    if (path === '/tenders') return ['Tenders'];
-    if (path.startsWith('/bids/')) return ['Bids', 'Bid Evaluation'];
-    if (path === '/bids') return ['Bids'];
-    if (path === '/activity') return ['Audit Log'];
-    return ['Workspace'];
+    if (path === '/') return [{ label: 'Dashboard' }];
+    if (path === '/tenders/new') return [{ label: 'Tenders', path: '/tenders' }, { label: 'New Tender' }];
+    if (path.startsWith('/tenders/')) return [{ label: 'Tenders', path: '/tenders' }, { label: 'Tender Workspace' }];
+    if (path === '/tenders') return [{ label: 'Tenders' }];
+    if (path.startsWith('/bids/') && path.includes('/fraud-risk')) {
+      return [{ label: 'Fraud & Risk', path: '/fraud-risk' }, { label: 'Forensic Analysis' }];
+    }
+    if (path.startsWith('/bids/')) return [{ label: 'Bids & Bidders', path: '/bids' }, { label: 'Bid Evaluation' }];
+    if (path === '/bids') return [{ label: 'Bids & Bidders' }];
+    if (path === '/fraud-risk') return [{ label: 'Fraud & Risk Intelligence' }];
+    if (path === '/settings') return [{ label: 'Settings & Rules' }];
+    if (path === '/activity') return [{ label: 'Audit Trail' }];
+    return [{ label: 'TenderTrace' }];
   };
 
   const crumbs = getBreadcrumbs();
 
   return (
     <header className="topbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-        {crumbs.map((crumb, i) => (
-          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {i > 0 && <ChevronRight size={14} color="var(--text-muted)" />}
-            <span style={{ 
-              fontWeight: i === crumbs.length - 1 ? 600 : 400,
-              color: i === crumbs.length - 1 ? 'var(--text-primary)' : 'var(--text-muted)',
-            }}>
-              {crumb}
+      <div className="topbar-left">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="btn btn-ghost btn-sm"
+            style={{ padding: '6px', marginRight: '4px' }}
+            aria-label="Toggle navigation menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
+
+        <nav aria-label="Breadcrumb" className="breadcrumb" style={{ margin: 0 }}>
+          {crumbs.map((crumb, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {i > 0 && <span className="sep"><ChevronRight size={13} /></span>}
+              {crumb.path && i < crumbs.length - 1 ? (
+                <Link to={crumb.path}>{crumb.label}</Link>
+              ) : (
+                <span className="current">{crumb.label}</span>
+              )}
             </span>
-          </span>
-        ))}
+          ))}
+        </nav>
       </div>
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search tenders, bids..." 
-            style={{ 
-              padding: '7px 12px 7px 32px', 
-              borderRadius: 'var(--radius-sm)', 
-              border: '1px solid var(--color-border)', 
-              backgroundColor: 'var(--color-background)',
-              fontSize: '13px',
-              width: '240px',
-              outline: 'none',
-              transition: 'border-color 200ms ease',
-            }}
-            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-accent)'}
-            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--color-border)'}
+
+      <div className="topbar-right">
+        {/* System Engine Health Indicator */}
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '3px 8px',
+            fontSize: '11px',
+            fontWeight: 600,
+            background: '#f0fdf4',
+            borderColor: '#bbf7d0',
+            color: '#15803d'
+          }}
+          title="Compliance & Fraud Detection Engines Active"
+        >
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }} />
+          <span>Engines Active</span>
+        </div>
+
+        {/* Global Quick Search */}
+        <div className="input-icon-wrapper" style={{ display: 'flex' }}>
+          <Search size={14} className="input-icon" />
+          <input
+            type="text"
+            className="input"
+            placeholder="Search tenders, bids, GSTIN..."
+            style={{ width: '220px', padding: '6px 12px 6px 30px', fontSize: '12px' }}
           />
         </div>
-        
-        {/* Notifications */}
-        <button style={{ 
-          background: 'none', border: 'none', cursor: 'pointer', 
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '36px', height: '36px', borderRadius: '50%',
-          transition: 'background-color 120ms ease',
-          color: 'var(--text-secondary)',
-        }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-background)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+
+        {/* Notifications Icon */}
+        <button
+          className="btn btn-ghost"
+          style={{ padding: '6px', borderRadius: '50%', position: 'relative' }}
+          aria-label="Notifications"
+          title="System Notifications"
         >
-          <Bell size={18} />
+          <Bell size={17} color="var(--text-secondary)" />
+          <span
+            style={{
+              position: 'absolute',
+              top: '4px',
+              right: '4px',
+              width: '7px',
+              height: '7px',
+              backgroundColor: 'var(--color-navy-500)',
+              borderRadius: '50%',
+            }}
+          />
         </button>
       </div>
     </header>
   );
 }
+
+export default Header;

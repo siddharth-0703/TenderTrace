@@ -1,103 +1,118 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Activity, Shield, ShieldAlert, Bell, HelpCircle, Settings } from 'lucide-react';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Activity,
+  ShieldCheck,
+  ShieldAlert,
+  Settings,
+  Shield
+} from 'lucide-react';
 
-export function Sidebar() {
-  const workspaceItems = [
-    { name: 'Overview', path: '/', icon: <LayoutDashboard size={18} />, end: true },
-    { name: 'Tenders', path: '/tenders', icon: <FileText size={18} /> },
-    { name: 'Bids', path: '/bids', icon: <Users size={18} /> },
-    { name: 'Compliance', path: '/tenders', icon: <Shield size={18} /> },
-    { name: 'Fraud & Risk', path: '/fraud-risk', icon: <ShieldAlert size={18} /> },
-    { name: 'Audit Log', path: '/activity', icon: <Activity size={18} /> },
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const overviewItems = [
+    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={17} />, end: true },
+  ];
+
+  const procurementItems = [
+    { name: 'Tenders', path: '/tenders', icon: <FileText size={17} /> },
+    { name: 'Bids & Bidders', path: '/bids', icon: <Users size={17} /> },
+  ];
+
+  const verificationItems = [
+    { name: 'Compliance Engine', path: '/tenders', icon: <ShieldCheck size={17} /> },
+    { name: 'Fraud & Anomaly', path: '/fraud-risk', icon: <ShieldAlert size={17} /> },
+    { name: 'Audit Trail', path: '/activity', icon: <Activity size={17} /> },
   ];
 
   const systemItems = [
-    { name: 'Notifications', path: '#', icon: <Bell size={18} /> },
-    { name: 'Settings', path: '/settings', icon: <Settings size={18} /> },
-    { name: 'Help', path: '#', icon: <HelpCircle size={18} /> },
+    { name: 'Settings & Rules', path: '/settings', icon: <Settings size={17} /> },
   ];
 
   return (
-    <aside className="sidebar">
-      {/* Brand */}
-      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px' }}>
-        <div style={{
-          width: '32px', height: '32px', borderRadius: '8px',
-          background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <Shield size={18} color="white" />
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      {/* Brand Header */}
+      <NavLink to="/" className="sidebar-header" onClick={onClose}>
+        <div className="sidebar-brand__icon">
+          <Shield size={19} />
         </div>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.02em', color: '#f1f5f9' }}>TenderTrace</div>
-          <div style={{ fontSize: '10px', fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Procurement Intelligence
-          </div>
+          <div className="sidebar-brand__name">TenderTrace</div>
+          <div className="sidebar-brand__sub">Procurement Intelligence</div>
         </div>
-      </div>
-      
-      <nav className="sidebar-nav">
-        <div style={{ padding: '12px 20px 6px 20px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Workspace
-        </div>
-        {workspaceItems.map((item) => (
+      </NavLink>
+
+      {/* Navigation Sections */}
+      <nav className="sidebar-nav" aria-label="Main Navigation">
+        <div className="sidebar-section-label">Overview</div>
+        {overviewItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}
             end={item.end}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            onClick={(e) => {
-              if (item.path === '#') e.preventDefault();
-            }}
+            onClick={onClose}
           >
             {item.icon}
             <span>{item.name}</span>
           </NavLink>
         ))}
 
-        <div style={{ padding: '20px 20px 6px 20px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          System
-        </div>
+        <div className="sidebar-section-label">Procurement</div>
+        {procurementItems.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.path}
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
+          >
+            {item.icon}
+            <span>{item.name}</span>
+          </NavLink>
+        ))}
+
+        <div className="sidebar-section-label">Verification</div>
+        {verificationItems.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.path}
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
+          >
+            {item.icon}
+            <span>{item.name}</span>
+          </NavLink>
+        ))}
+
+        <div className="sidebar-section-label">System</div>
         {systemItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}
-            className={({ isActive }) => `sidebar-link ${item.path !== '#' && isActive ? 'active' : ''}`}
-            style={{ opacity: item.path === '#' ? 0.6 : 1 }}
-            onClick={(e) => {
-              if (item.path === '#') e.preventDefault();
-            }}
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
           >
             {item.icon}
             <span>{item.name}</span>
           </NavLink>
         ))}
       </nav>
-      
-      {/* Footer */}
-      <div style={{ 
-        padding: '16px 20px', 
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-      }}>
-        <div style={{
-          width: '28px', height: '28px', borderRadius: '50%',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '12px', fontWeight: 700, color: '#94a3b8',
-          flexShrink: 0,
-        }}>
-          PO
-        </div>
+
+      {/* Officer Identity Footer */}
+      <div className="sidebar-footer">
+        <div className="sidebar-avatar">PO</div>
         <div style={{ overflow: 'hidden' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Procurement Officer
           </div>
-          <div style={{ fontSize: '10px', color: '#64748b' }}>
-            Gov. of India
+          <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+            GeM Evaluation Board
           </div>
         </div>
       </div>

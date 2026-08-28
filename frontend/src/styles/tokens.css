@@ -1,72 +1,126 @@
-/* =====================================================
-   DESIGN TOKENS — Government Procurement Platform
-   Navy / Slate / White — Professional, Information-Dense
-   ===================================================== */
+/* ==========================================================================
+   TENDERTRACE — ENTERPRISE DESIGN TOKENS
+   Government-Grade Trust + Modern Enterprise Intelligence
+   ========================================================================== */
 
 :root {
-  /* ── Color Palette ── */
+  /* ── 1. Color Palette: Primary Foundations ── */
+  --color-navy-950: #0a0f1d;
   --color-navy-900: #0f172a;
-  --color-navy-800: #1a2e4a;
+  --color-navy-850: #142037;
+  --color-navy-800: #1e293b;
   --color-navy-700: #1e3a5f;
-  --color-navy-600: #1d4ed8;
-  --color-navy-500: #2563a8;
-  --color-navy-400: #3b82c4;
+  --color-navy-600: #254b77;
+  --color-navy-500: #2563eb;
+  --color-navy-400: #3b82f6;
+  --color-navy-300: #93c5fd;
+  --color-navy-200: #bfdbfe;
   --color-navy-100: #dbeafe;
   --color-navy-50:  #eff6ff;
 
+  /* ── 2. Color Palette: Slate Neutrals ── */
   --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
   --color-slate-700: #334155;
   --color-slate-600: #475569;
   --color-slate-500: #64748b;
   --color-slate-400: #94a3b8;
   --color-slate-300: #cbd5e1;
   --color-slate-200: #e2e8f0;
+  --color-slate-150: #eef2f6;
   --color-slate-100: #f1f5f9;
   --color-slate-50:  #f8fafc;
+  --color-white:     #ffffff;
 
-  --color-white: #ffffff;
+  /* ── 3. Semantic Colors (Accessible, High-Contrast) ── */
+  /* Success / Compliant / Safe */
+  --color-success:        #15803d; /* Green 700 */
+  --color-success-hover:  #166534;
+  --color-success-bg:     #f0fdf4; /* Green 50 */
+  --color-success-border: #bbf7d0; /* Green 200 */
+  --color-success-text:   #14532d; /* Green 900 */
 
-  /* Semantic colors */
-  --color-success:      #16a34a;
-  --color-success-bg:   #f0fdf4;
-  --color-success-border: #bbf7d0;
+  /* Warning / Attention / Review Required */
+  --color-warning:        #b45309; /* Amber 700 */
+  --color-warning-hover:  #92400e;
+  --color-warning-bg:     #fffbeb; /* Amber 50 */
+  --color-warning-border: #fde68a; /* Amber 200 */
+  --color-warning-text:   #78350f; /* Amber 900 */
 
-  --color-warning:      #d97706;
-  --color-warning-bg:   #fffbeb;
-  --color-warning-border: #fde68a;
+  /* Danger / Non-Compliant / High Risk */
+  --color-danger:         #b91c1c; /* Red 700 */
+  --color-danger-hover:   #991b1b;
+  --color-danger-bg:      #fef2f2; /* Red 50 */
+  --color-danger-border:  #fecaca; /* Red 200 */
+  --color-danger-text:    #7f1d1d; /* Red 900 */
 
-  --color-danger:       #dc2626;
-  --color-danger-bg:    #fef2f2;
-  --color-danger-border: #fecaca;
+  /* Critical / Severe Anomaly / Collusion Flag */
+  --color-critical:        #881337; /* Rose 900 */
+  --color-critical-bg:     #fff1f2; /* Rose 50 */
+  --color-critical-border: #fecdd3; /* Rose 200 */
+  --color-critical-text:   #4c0519;
 
-  --color-critical:     #7f1d1d;
-  --color-critical-bg:  #fef2f2;
-  --color-critical-border: #fca5a5;
+  /* Info / Intelligence Accent */
+  --color-info:           #1d4ed8; /* Blue 700 */
+  --color-info-bg:        #eff6ff;
+  --color-info-border:    #bfdbfe;
+  --color-info-text:      #1e3a8a;
 
-  /* Risk level colors */
-  --risk-low-color:      var(--color-success);
-  --risk-low-bg:         var(--color-success-bg);
-  --risk-low-border:     var(--color-success-border);
+  /* ── 4. Risk Level Mapping ── */
+  --risk-low-color:       var(--color-success);
+  --risk-low-bg:          var(--color-success-bg);
+  --risk-low-border:      var(--color-success-border);
+  --risk-low-text:        var(--color-success-text);
 
-  --risk-medium-color:   var(--color-warning);
-  --risk-medium-bg:      var(--color-warning-bg);
-  --risk-medium-border:  var(--color-warning-border);
+  --risk-medium-color:    var(--color-warning);
+  --risk-medium-bg:       var(--color-warning-bg);
+  --risk-medium-border:   var(--color-warning-border);
+  --risk-medium-text:     var(--color-warning-text);
 
-  --risk-high-color:     var(--color-danger);
-  --risk-high-bg:        var(--color-danger-bg);
-  --risk-high-border:    var(--color-danger-border);
+  --risk-high-color:      var(--color-danger);
+  --risk-high-bg:         var(--color-danger-bg);
+  --risk-high-border:     var(--color-danger-border);
+  --risk-high-text:       var(--color-danger-text);
 
-  --risk-critical-color: var(--color-critical);
-  --risk-critical-bg:    var(--color-critical-bg);
-  --risk-critical-border:var(--color-critical-border);
+  --risk-critical-color:  var(--color-critical);
+  --risk-critical-bg:     var(--color-critical-bg);
+  --risk-critical-border: var(--color-critical-border);
+  --risk-critical-text:   var(--color-critical-text);
 
-  /* ── Typography ── */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  /* ── 5. Backwards-Compatible Aliases ── */
+  --color-primary:        #0f172a;
+  --color-primary-hover:  #1e293b;
+  --color-primary-light:  #eff6ff;
+  --color-accent:         #2563eb;
+  --color-accent-hover:   #1d4ed8;
+  --color-error:          var(--color-danger);
+  --color-error-bg:       var(--color-danger-bg);
+  --color-error-border:   var(--color-danger-border);
+  --color-background:     #f8fafc;
+  --color-surface:        #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border:         #e2e8f0;
+  --color-border-light:   #f1f5f9;
+  --color-divider:        #f1f5f9;
 
+  /* Text tokens */
+  --text-primary:         #0f172a;
+  --text-secondary:       #475569;
+  --text-muted:           #64748b;
+  --text-subtle:          #94a3b8;
+  --text-inverse:         #ffffff;
+  --text-link:            #2563eb;
+
+  /* ── 6. Typography ── */
+  --font-family:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:            var(--font-family);
+  --font-mono:            'JetBrains Mono', 'SF Mono', 'Fira Code', 'Courier New', monospace;
+
+  --text-2xs:  0.6875rem; /* 11px */
   --text-xs:   0.75rem;   /* 12px */
   --text-sm:   0.875rem;  /* 14px */
-  --text-base: 1rem;      /* 16px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-md:   1rem;      /* 16px */
   --text-lg:   1.125rem;  /* 18px */
   --text-xl:   1.25rem;   /* 20px */
   --text-2xl:  1.5rem;    /* 24px */
@@ -77,35 +131,57 @@
   --font-semibold: 600;
   --font-bold:     700;
 
-  /* ── Spacing ── */
-  --space-1:  0.25rem;
-  --space-2:  0.5rem;
-  --space-3:  0.75rem;
-  --space-4:  1rem;
-  --space-5:  1.25rem;
-  --space-6:  1.5rem;
-  --space-8:  2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
+  /* ── 7. Spacing System ── */
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1:   0.25rem;  /* 4px */
+  --space-1-5: 0.375rem; /* 6px */
+  --space-2:   0.5rem;   /* 8px */
+  --space-2-5: 0.625rem; /* 10px */
+  --space-3:   0.75rem;  /* 12px */
+  --space-4:   1rem;     /* 16px */
+  --space-5:   1.25rem;  /* 20px */
+  --space-6:   1.5rem;   /* 24px */
+  --space-8:   2rem;     /* 32px */
+  --space-10:  2.5rem;   /* 40px */
+  --space-12:  3rem;     /* 48px */
+  --space-16:  4rem;     /* 64px */
 
-  /* ── Layout ── */
-  --sidebar-width: 240px;
-  --topbar-height: 56px;
-  --content-max-width: 1400px;
+  /* ── 8. Layout Dimensions ── */
+  --sidebar-width:           260px;
+  --sidebar-collapsed-width: 72px;
+  --topbar-height:           60px;
+  --content-max-width:       1440px;
 
-  /* ── Borders ── */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --border-color: var(--color-slate-200);
+  /* ── 9. Borders & Border Radius ── */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  --border-color: #e2e8f0;
 
-  /* ── Shadows ── */
-  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+  /* ── 10. Elevation Shadows (Subtle, Enterprise) ── */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-drawer: -4px 0 24px rgba(15, 23, 42, 0.15);
 
-  /* ── Transitions ── */
-  --transition-fast: 150ms ease;
-  --transition-base: 200ms ease;
+  /* ── 11. Transitions ── */
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base:   200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── 12. Z-Index Scale ── */
+  --z-base:     1;
+  --z-sticky:   40;
+  --z-header:   50;
+  --z-sidebar:  60;
+  --z-drawer:   70;
+  --z-modal:    80;
+  --z-popover:  90;
+  --z-toast:    100;
 }

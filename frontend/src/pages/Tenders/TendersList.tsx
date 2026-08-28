@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { tenderApi } from '../../services/api/tenderApi';
 import type { Tender } from '../../types';
-import { Plus, Search, Filter, Trash2, X } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, X, FileText } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -35,7 +35,7 @@ export default function TendersList() {
   const handleDelete = (e: React.MouseEvent, tender: Tender) => {
     e.stopPropagation();
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${tender.title}" (${tender.tenderNumber || tender.id.substring(0, 8)})?\n\nThis action will be permanently recorded in the system audit history.`
+      `Are you sure you want to delete tender "${tender.title}" (${tender.tenderNumber || tender.id.substring(0, 8)})?\n\nThis action will be permanently recorded in the system audit history.`
     );
     if (confirmed) {
       deleteMutation.mutate(tender.id);
@@ -46,7 +46,7 @@ export default function TendersList() {
   const uniqueDepartments = useMemo(() => {
     if (!tenders) return [];
     const set = new Set<string>();
-    tenders.forEach(t => {
+    tenders.forEach((t) => {
       if (t.organization && t.organization.trim()) {
         set.add(t.organization.trim());
       }
@@ -83,55 +83,63 @@ export default function TendersList() {
     });
   }, [tenders, searchQuery, selectedStatus, selectedDepartment]);
 
-  if (isLoading) return <LoadingSpinner text="Loading tenders..." />;
+  if (isLoading) return <LoadingSpinner text="Loading procurement tender dossiers..." />;
   if (isError) return <ErrorState title="Failed to load tenders" onRetry={() => refetch()} />;
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-      {/* Responsive Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <div>
-          <h1 className="text-h1" style={{ marginBottom: '4px' }}>Tender Management</h1>
-          <p className="text-muted" style={{ margin: 0 }}>Manage government tenders, requirements, and compliance.</p>
+      {/* ── Page Header ── */}
+      <div className="page-header">
+        <div className="page-header-row">
+          <div>
+            <h1>Tender Dossier Management</h1>
+            <div className="subtitle">
+              Configure procurement packages, extract AI requirement rules, and oversee bid submissions
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/tenders/new')}
+          >
+            <Plus size={15} /> Create Tender Package
+          </button>
         </div>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => navigate('/tenders/new')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontSize: '14px', whiteSpace: 'nowrap' }}
-        >
-          <Plus size={16} /> Create Tender
-        </button>
       </div>
 
-      {/* Responsive Filter Bar */}
-      <div className="card" style={{ marginBottom: '24px', padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', backgroundColor: 'var(--color-surface)' }}>
-        <div style={{ position: 'relative', flex: '1 1 260px', minWidth: '220px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
+      {/* ── Filter Bar ── */}
+      <div className="card" style={{ marginBottom: '24px', padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', backgroundColor: 'var(--color-white)' }}>
+        <div className="input-icon-wrapper" style={{ flex: '1 1 280px' }}>
+          <Search size={15} className="input-icon" />
+          <input
+            type="text"
+            className="input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tenders, ref, or dept..." 
-            style={{ padding: '8px 12px 8px 36px', borderRadius: '4px', border: '1px solid var(--color-border)', width: '100%', fontSize: '14px', boxSizing: 'border-box' }} 
+            placeholder="Filter by title, reference number, or ministry..."
+            style={{ width: '100%' }}
           />
           {searchQuery && (
-            <button 
+            <button
+              type="button"
               onClick={() => setSearchQuery('')}
               style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              aria-label="Clear search"
             >
               <X size={14} />
             </button>
           )}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', flex: '0 1 auto' }}>
-          <Filter size={16} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-          <select 
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          <Filter size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+          <select
+            className="select"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '13px', backgroundColor: 'var(--color-background)', minWidth: '140px' }}
+            aria-label="Filter by tender status"
           >
-            <option value="ALL">All Statuses</option>
+            <option value="ALL">All Lifecycle Statuses</option>
             <option value="DRAFT">Draft</option>
             <option value="READY">Published / Ready</option>
             <option value="UNDER_EVALUATION">Under Evaluation</option>
@@ -139,50 +147,54 @@ export default function TendersList() {
             <option value="AWARD_PENDING">Award Pending</option>
           </select>
 
-          <select 
+          <select
+            className="select"
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '13px', backgroundColor: 'var(--color-background)', maxWidth: '220px', textOverflow: 'ellipsis' }}
+            aria-label="Filter by department"
+            style={{ maxWidth: '240px' }}
           >
-            <option value="ALL">All Departments</option>
-            {uniqueDepartments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
+            <option value="ALL">All Procuring Entities</option>
+            {uniqueDepartments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
             ))}
           </select>
-
-          {(searchQuery || selectedStatus !== 'ALL' || selectedDepartment !== 'ALL') && (
-            <button 
-              className="btn btn-outline"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedStatus('ALL');
-                setSelectedDepartment('ALL');
-              }}
-              style={{ padding: '6px 10px', fontSize: '12px' }}
-            >
-              Reset Filters
-            </button>
-          )}
         </div>
       </div>
 
+      {/* ── Table / List View ── */}
       {filteredTenders.length === 0 ? (
-        <EmptyState 
-          title={tenders?.length === 0 ? "No active tenders" : "No matching tenders found"} 
-          message={tenders?.length === 0 ? "Create a new tender to begin the procurement process." : "Try adjusting your search query or filters."} 
+        <EmptyState
+          title="No tenders match your criteria"
+          message={searchQuery ? "Try adjusting your search terms or clearing status filters." : "No procurement packages have been created yet. Click below to add your first tender."}
+          action={
+            <button className="btn btn-primary btn-sm" onClick={() => navigate('/tenders/new')}>
+              <Plus size={14} /> Create Tender
+            </button>
+          }
         />
       ) : (
-        <div className="table-container">
+        <div className="table-wrapper">
+          <div className="table-toolbar">
+            <span className="table-toolbar-title">
+              <FileText size={15} color="var(--color-navy-500)" />
+              Active Procurement Packages
+              <span className="badge badge--neutral" style={{ marginLeft: '8px' }}>
+                {filteredTenders.length}
+              </span>
+            </span>
+          </div>
+
           <table>
             <thead>
               <tr>
-                <th>Tender</th>
-                <th>Reference</th>
-                <th>Department</th>
+                <th>Tender Title &amp; Entity</th>
+                <th>Tender ID / Ref</th>
                 <th style={{ textAlign: 'center' }}>Bidders</th>
-                <th>Closing</th>
-                <th>Risk</th>
                 <th>Status</th>
+                <th>Created</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -190,35 +202,48 @@ export default function TendersList() {
               {filteredTenders.map((tender: Tender) => (
                 <tr key={tender.id}>
                   <td>
-                    <div style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{tender.title}</div>
+                    <Link
+                      to={`/tenders/${tender.id}`}
+                      style={{ fontWeight: 600, color: 'var(--color-slate-900)', display: 'block' }}
+                    >
+                      {tender.title}
+                    </Link>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {tender.organization || 'Government Department'}
+                    </div>
                   </td>
-                  <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                    {tender.tenderNumber || tender.id.substring(0, 8)}
+                  <td>
+                    <span className="font-mono" style={{ background: 'var(--color-slate-100)', padding: '2px 8px', borderRadius: '4px' }}>
+                      {tender.tenderNumber || tender.id.substring(0, 8)}
+                    </span>
                   </td>
-                  <td style={{ fontSize: '13px' }}>{tender.organization}</td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{tender._count?.bids || 0}</td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Not Available</td>
-                  <td><span className="badge badge-neutral" style={{ fontSize: '10px' }}>N/A</span></td>
+                  <td style={{ textAlign: 'center', fontWeight: 600 }}>
+                    {tender._count?.bids ?? (tender.bids?.length || 0)}
+                  </td>
                   <td>
                     <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
                   </td>
+                  <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {new Date(tender.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
-                      <button 
-                        className="btn btn-outline"
-                        style={{ padding: '4px 12px', fontSize: '12px' }}
-                        onClick={() => navigate(`/tenders/${tender.id}`)}
+                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <Link
+                        to={`/tenders/${tender.id}`}
+                        className="btn btn-secondary btn-sm"
                       >
-                        Review
-                      </button>
-                      <button 
-                        className="btn btn-outline"
-                        title="Delete Tender"
-                        style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-error)', borderColor: 'rgba(197,34,31,0.2)' }}
+                        Workspace
+                      </Link>
+                      <button
+                        type="button"
                         onClick={(e) => handleDelete(e, tender)}
                         disabled={deleteMutation.isPending}
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: 'var(--color-danger)', padding: '5px 8px' }}
+                        title="Delete tender"
+                        aria-label={`Delete tender ${tender.title}`}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>

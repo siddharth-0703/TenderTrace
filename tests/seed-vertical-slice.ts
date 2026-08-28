@@ -49,7 +49,7 @@ async function run() {
             category: "COMPOUND",
             type: "COMPLEX_ELIGIBILITY",
             description: "Must have >= 5Cr turnover, >= 5 years exp, and either GST or Alt Reg",
-            rules: compoundRule as any, // Store JSON rule
+            rules: JSON.stringify(compoundRule), // Store JSON rule
             operator: "COMPLEX" // Legacy compatibility
         }
     });

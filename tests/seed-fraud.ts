@@ -56,10 +56,14 @@ function printResult(label: string, result: Awaited<ReturnType<FraudEngine["anal
 async function run() {
     console.log("Cleaning previous fraud test data...");
     await prisma.fraudAnalysis.deleteMany();
+    await prisma.complianceResult.deleteMany();
+    await prisma.requirementEvidenceMatch.deleteMany();
+    await prisma.activityLog.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.document.deleteMany();
     await prisma.bid.deleteMany();
     await prisma.bidder.deleteMany();
+    await prisma.tenderRequirement.updateMany({ data: { supersededById: null } });
     await prisma.tenderRequirement.deleteMany();
     await prisma.tender.deleteMany();
 

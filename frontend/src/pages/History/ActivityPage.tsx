@@ -1,60 +1,143 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityTimeline } from '../../components/common/ActivityTimeline';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
-import { Search, Filter, Download } from 'lucide-react';
+import { EmptyState } from '../../components/common/EmptyState';
+import { Search, Filter, Download, Activity, X } from 'lucide-react';
 
 export default function ActivityPage() {
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('ALL');
+
   const { data: activities, isLoading, isError, refetch } = useQuery({
     queryKey: ['globalActivity'],
     queryFn: async () => {
       const res = await fetch('http://localhost:3000/api/activity');
       if (!res.ok) throw new Error('Failed to fetch activity');
       return res.json();
-    }
+    },
   });
 
-  if (isLoading) return <LoadingSpinner text="Loading global audit log..." />;
-  if (isError) return <ErrorState title="Failed to load audit log" onRetry={() => refetch()} />;
+  const filteredActivities = useMemo(() => {
+    if (!activities || !Array.isArray(activities)) return [];
+    return activities.filter((act: any) => {
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const msg = (act.message || '').toLowerCase();
+        const type = (act.type || '').toLowerCase();
+        if (!msg.includes(q) && !type.includes(q)) return false;
+      }
+
+      if (actionFilter !== 'ALL') {
+        const t = (act.type || '').toUpperCase();
+        if (actionFilter === 'EVALUATION' && !t.includes('COMPLIANCE') && !t.includes('MATCH') && !t.includes('EVALUAT')) return false;
+        if (actionFilter === 'DECISION' && !t.includes('DECISION') && !t.includes('APPROVED') && !t.includes('REJECTED')) return false;
+        if (actionFilter === 'UPLOAD' && !t.includes('UPLOAD') && !t.includes('DOCUMENT')) return false;
+      }
+
+      return true;
+    });
+  }, [activities, search, actionFilter]);
+
+  const handleExportJson = () => {
+    if (!activities) return;
+    const blob = new Blob([JSON.stringify(activities, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tendertrace-audit-log-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (isLoading) return <LoadingSpinner text="Loading global compliance audit trail..." />;
+  if (isError) return <ErrorState title="Failed to load audit trail" onRetry={() => refetch()} />;
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-h1" style={{ marginBottom: '4px' }}>System Audit Trail</h1>
-          <p className="text-muted">Immutable ledger of all procurement actions, evaluations, and decisions.</p>
+      {/* ── Page Header ── */}
+      <div className="page-header">
+        <div className="page-header-row">
+          <div>
+            <h1>Immutable Audit Trail &amp; Event Stream</h1>
+            <div className="subtitle">
+              Cryptographically timestamped record of all procurement evaluations, AI extractions, and officer determinations
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleExportJson}
+            disabled={!activities || activities.length === 0}
+          >
+            <Download size={13} />
+            <span>Export Audit Trail (JSON)</span>
+          </button>
         </div>
-        <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Download size={16} /> Export Log
-        </button>
       </div>
 
-      <div className="card" style={{ marginBottom: '24px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: 'var(--color-surface)' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search by tender, bidder, or action..." 
-            style={{ padding: '8px 12px 8px 36px', borderRadius: '4px', border: '1px solid var(--color-border)', width: '100%', fontSize: '14px' }} 
+      {/* ── Filters ── */}
+      <div className="card" style={{ marginBottom: '24px', padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div className="input-icon-wrapper" style={{ flex: '1 1 280px' }}>
+          <Search size={15} className="input-icon" />
+          <input
+            type="text"
+            className="input"
+            placeholder="Search by keyword, tender reference, or action type..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%' }}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              aria-label="Clear search"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
+
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Filter size={16} color="var(--text-muted)" />
-          <select style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: 'var(--color-background)' }}>
-            <option>All Actions</option>
-            <option>Compliance Evaluated</option>
-            <option>Officer Decision</option>
-          </select>
-          <select style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: 'var(--color-background)' }}>
-            <option>Last 30 Days</option>
-            <option>Last 6 Months</option>
-            <option>All Time</option>
+          <Filter size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+          <select
+            className="select"
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            aria-label="Filter by action category"
+          >
+            <option value="ALL">All Event Categories</option>
+            <option value="EVALUATION">Compliance Evaluations</option>
+            <option value="DECISION">Officer Determinations</option>
+            <option value="UPLOAD">Document Ingestions</option>
           </select>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '32px' }}>
-        <ActivityTimeline activities={activities || []} />
+      {/* ── Timeline Card ── */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">
+            <Activity size={16} color="var(--color-navy-500)" />
+            Recorded System Events
+            <span className="badge badge--neutral" style={{ marginLeft: '8px' }}>
+              {filteredActivities.length}
+            </span>
+          </span>
+        </div>
+        <div className="card-body">
+          {filteredActivities.length === 0 ? (
+            <EmptyState
+              title="No events matching criteria"
+              message={search || actionFilter !== 'ALL' ? 'Try changing your search terms or filter selection.' : 'No audit events have been logged yet.'}
+            />
+          ) : (
+            <ActivityTimeline activities={filteredActivities} />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,40 +6,57 @@ interface Props {
   onRetry?: () => void;
 }
 
-export function ErrorState({ 
-  title = 'Something went wrong', 
-  message = 'An unexpected error occurred. Please try again later.',
-  onRetry 
+export function ErrorState({
+  title = 'Service Unavailable',
+  message = 'Unable to complete the requested operation. Please verify connection and retry.',
+  onRetry,
 }: Props) {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '48px 24px',
-      textAlign: 'center',
-      minHeight: '200px',
-    }}>
-      <div style={{
-        width: '64px',
-        height: '64px',
-        borderRadius: '50%',
-        backgroundColor: 'var(--color-error-bg)',
+    <div
+      className="alert-box alert-error"
+      style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: '20px',
-      }}>
-        <AlertCircle size={28} color="var(--color-error)" />
+        padding: '48px 24px',
+        textAlign: 'center',
+        margin: '24px 0',
+        borderRadius: 'var(--radius-lg)',
+      }}
+    >
+      <div
+        style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(220, 38, 38, 0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '16px',
+        }}
+      >
+        <AlertCircle size={24} color="var(--color-danger)" />
       </div>
-      <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>{title}</h3>
-      <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '360px', marginBottom: onRetry ? '20px' : '0' }}>{message}</p>
+      <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-danger)', marginBottom: '8px' }}>
+        {title}
+      </h3>
+      <p style={{ fontSize: '13px', color: 'var(--color-danger-text)', maxWidth: '440px', marginBottom: onRetry ? '20px' : '0' }}>
+        {message}
+      </p>
       {onRetry && (
-        <button className="btn btn-outline" onClick={onRetry} style={{ gap: '8px' }}>
-          <RefreshCw size={14} /> Retry
+        <button
+          onClick={onRetry}
+          className="btn btn-secondary btn-sm"
+          style={{ marginTop: '12px' }}
+        >
+          <RefreshCw size={13} />
+          <span>Retry Request</span>
         </button>
       )}
     </div>
   );
 }
+
+export default ErrorState;
