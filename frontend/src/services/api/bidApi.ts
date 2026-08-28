@@ -25,5 +25,9 @@ export const bidApi = {
   getTenderBidMatches: async (tenderId: string, bidId: string): Promise<{ matches: RequirementEvidenceMatch[] }> => {
     const { data } = await apiClient.get(`/tenders/${tenderId}/bids/${bidId}/matches`);
     return data;
+  },
+  submitOfficerDecision: async (id: string, decision: string, comment?: string): Promise<any> => {
+    const { data } = await apiClient.post(`/bids/${id}/decision`, { decision, comment });
+    return data;
   }
 };

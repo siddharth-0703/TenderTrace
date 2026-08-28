@@ -101,12 +101,12 @@ export default function TenderDetails() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview' },
     { id: 'documents', label: `Documents (${tender.documents?.length || 0})` },
-    { id: 'requirements', label: `Requirements (${tender.requirements?.length || 0})` },
     { id: 'bids', label: `Bidders (${tender.bids?.length || 0})` },
+    { id: 'requirements', label: `Requirements (${tender.requirements?.length || 0})` },
     { id: 'compliance', label: 'Compliance' },
     { id: 'history', label: 'Audit Trail' },
+    { id: 'overview', label: 'Overview' },
   ];
 
   return (
@@ -143,26 +143,6 @@ export default function TenderDetails() {
                 <Trash2 size={14} /> Delete
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Progress Tracker Stub */}
-        <div style={{ marginTop: '24px', padding: '16px', backgroundColor: 'var(--color-background)', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <div style={{ color: 'var(--color-primary)' }}>Created</div>
-            <div style={{ color: tender.documents?.length ? 'var(--color-primary)' : 'inherit' }}>Docs Received</div>
-            <div style={{ color: tender.requirements?.length ? 'var(--color-primary)' : 'inherit' }}>Reqs Extracted</div>
-            <div style={{ color: tender.bids?.length ? 'var(--color-primary)' : 'inherit' }}>Bids Received</div>
-            <div>Compliance Evaluation</div>
-            <div>Officer Decision</div>
-          </div>
-          <div style={{ display: 'flex', marginTop: '12px', gap: '4px' }}>
-            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-primary)', borderRadius: '2px' }}></div>
-            <div style={{ height: '4px', flex: 1, backgroundColor: tender.documents?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
-            <div style={{ height: '4px', flex: 1, backgroundColor: tender.requirements?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
-            <div style={{ height: '4px', flex: 1, backgroundColor: tender.bids?.length ? 'var(--color-primary)' : 'var(--color-border)', borderRadius: '2px' }}></div>
-            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-border)', borderRadius: '2px' }}></div>
-            <div style={{ height: '4px', flex: 1, backgroundColor: 'var(--color-border)', borderRadius: '2px' }}></div>
           </div>
         </div>
       </div>

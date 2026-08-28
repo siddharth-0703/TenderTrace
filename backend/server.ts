@@ -504,6 +504,44 @@ app.post("/api/bids", async (req, res) => {
     }
 });
 
+app.post("/api/bids/:id/decision", async (req, res) => {
+    try {
+        const { decision, comment } = req.body;
+        const bidId = req.params.id;
+
+        const statusMap: Record<string, string> = {
+            APPROVED: "APPROVED",
+            REJECTED: "REJECTED",
+            CLARIFICATION_REQUESTED: "UNDER_REVIEW"
+        };
+
+        const newStatus = statusMap[decision] || decision || "REVIEWED";
+
+        const bid = await prisma.bid.update({
+            where: { id: bidId },
+            data: { status: newStatus },
+            include: { bidder: true, tender: true }
+        });
+
+        await ActivityLogger.log({
+            bidId,
+            tenderId: bid.tenderId,
+            type: `OFFICER_${decision}`,
+            message: `Officer recorded decision: ${decision} for bid ${bid.id.substring(0, 8)} (${bid.bidder?.legalName || 'Bidder'})${comment ? ` - "${comment}"` : ''}`,
+            metadata: {
+                decision,
+                comment,
+                newStatus,
+                decidedAt: new Date().toISOString()
+            }
+        });
+
+        res.json({ success: true, bid });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- BID EVIDENCE & COMPLIANCE ORCHESTRATION ---
 app.post("/api/bids/:id/process-evidence", async (req, res) => {
     try {

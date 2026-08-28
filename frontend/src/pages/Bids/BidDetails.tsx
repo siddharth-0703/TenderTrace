@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bidApi } from '../../services/api/bidApi';
-import { PlayCircle, Loader2, ArrowLeft, CheckCircle, AlertTriangle, ShieldAlert, XCircle, FileText } from 'lucide-react';
+import { PlayCircle, Loader2, ArrowLeft, CheckCircle, AlertTriangle, ShieldAlert, XCircle, FileText, Check, HelpCircle, Ban } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -14,8 +14,14 @@ import { RuleDisplay } from '../../components/common/RuleDisplay';
 export default function BidDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'compliance' | 'history'>('compliance');
+  
+  // Default to 'documents' so first-time users land directly on upload
+  const initialTab = (searchParams.get('tab') as any) || 'documents';
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'compliance' | 'history'>(initialTab);
+  const [decisionNote, setDecisionNote] = useState('');
+  const [decisionFeedback, setDecisionFeedback] = useState<string | null>(null);
 
   const { data: bid, isLoading, isError, refetch } = useQuery({
     queryKey: ['bid', id],
@@ -58,6 +64,20 @@ export default function BidDetails() {
       queryClient.invalidateQueries({ queryKey: ['tender', bid!.tenderId] });
       setActiveTab('compliance');
     },
+  });
+
+  const decisionMutation = useMutation({
+    mutationFn: ({ decision, comment }: { decision: string; comment?: string }) =>
+      bidApi.submitOfficerDecision(id!, decision, comment),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bid', id] });
+      queryClient.invalidateQueries({ queryKey: ['bid', id, 'activity'] });
+      queryClient.invalidateQueries({ queryKey: ['tender', bid?.tenderId] });
+      queryClient.invalidateQueries({ queryKey: ['bids'] });
+      setDecisionFeedback(`Decision recorded successfully as ${data.bid?.status || 'UPDATED'}.`);
+      setDecisionNote('');
+      setTimeout(() => setDecisionFeedback(null), 5000);
+    }
   });
 
   const complianceItems: any[] = useMemo(() => {
@@ -399,16 +419,85 @@ export default function BidDetails() {
                 })}
 
                 {/* Officer Decision Panel */}
-                <div className="action-panel">
-                  <h3 className="text-h3" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginBottom: '8px' }}>Officer Decision</h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-                    The system assessment is advisory. Final procurement decision rests with the authorized officer.
-                  </p>
+                <div className="card" style={{ padding: '24px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <h3 className="text-h3" style={{ fontSize: '15px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', margin: 0 }}>
+                        Authorized Officer Determination
+                      </h3>
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
+                        System assessments are advisory. Final compliance acceptance rests with the procurement authority.
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Current Status:</span>
+                      <StatusBadge status={bid.status || 'SUBMITTED'} />
+                    </div>
+                  </div>
+
+                  {decisionFeedback && (
+                    <div className="alert-box alert-info" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '4px' }}>
+                      <CheckCircle size={16} color="var(--color-primary)" />
+                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{decisionFeedback}</span>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Officer Remarks / Evaluation Note (Optional)
+                    </label>
+                    <textarea 
+                      value={decisionNote}
+                      onChange={(e) => setDecisionNote(e.target.value)}
+                      placeholder="Add justification or specific remarks for audit compliance..."
+                      rows={2}
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 12px', 
+                        borderRadius: '4px', 
+                        border: '1px solid var(--color-border)', 
+                        fontSize: '13px', 
+                        backgroundColor: 'var(--color-background)',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
                   
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <button className="btn btn-success">Approve Bid</button>
-                    <button className="btn btn-outline" style={{ backgroundColor: 'white' }}>Request Clarification</button>
-                    <button className="btn btn-danger">Reject Bid</button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'flex-start' }}>
+                    <button 
+                      className="btn btn-success" 
+                      onClick={() => decisionMutation.mutate({ decision: 'APPROVED', comment: decisionNote })}
+                      disabled={decisionMutation.isPending}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
+                    >
+                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Check size={15} />}
+                      Approve Bid
+                    </button>
+                    
+                    <button 
+                      className="btn btn-outline" 
+                      onClick={() => decisionMutation.mutate({ decision: 'CLARIFICATION_REQUESTED', comment: decisionNote })}
+                      disabled={decisionMutation.isPending}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px', backgroundColor: 'white' }}
+                    >
+                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <HelpCircle size={15} />}
+                      Request Clarification
+                    </button>
+                    
+                    <button 
+                      className="btn btn-danger" 
+                      onClick={() => {
+                        const confirmed = window.confirm('Are you sure you want to REJECT this bid? This will be recorded in the audit trail.');
+                        if (confirmed) {
+                          decisionMutation.mutate({ decision: 'REJECTED', comment: decisionNote });
+                        }
+                      }}
+                      disabled={decisionMutation.isPending}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
+                    >
+                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Ban size={15} />}
+                      Reject Bid
+                    </button>
                   </div>
                 </div>
               </div>
