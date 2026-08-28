@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("OFFICER")
+  createdAt    DateTime @default(now())
+}
+
+model Tender {
+  id             String              @id @default(uuid())
+  tenderNumber   String              @unique
+  title          String
+  description    String?
+  organization   String
+  issueDate      DateTime?
+  closingDate    DateTime?
+  status         String              @default("DRAFT") // DRAFT, UPLOADED, PROCESSING, READY, CLOSED
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  requirements   TenderRequirement[]
+  bids           Bid[]
+  documents      Document[]
+}
+
+model TenderRequirement {
+  id               String   @id @default(uuid())
+  tenderId         String
+  tender           Tender   @relation(fields: [tenderId], references: [id])
+  category         String   // FINANCIAL, TECHNICAL, DOCUMENTARY
+  type             String   // MIN_TURNOVER, MIN_EXPERIENCE, etc.
+  description      String
+  mandatory        Boolean  @default(true)
+  operator         String   // >=, <=, >, <, ==, !=, IN, EXISTS
+  threshold        Float?
+  expectedValue    String?
+  unit             String?
+  rules            Json?    // Phase 2 canonical structured rule tree
+  sourceDocumentId String?
+  confidence       Json?    // Phase 3 RequirementConfidence (detection, classification, ruleExtraction)
+  sourceProvenance Json?    // Phase 3 SourceProvenance (page, section, originalText)
+  aiMetadata       Json?    // Phase 3 AIMetadata (provider, promptVersion, extractedAt)
+  reviewStatus     String   @default("DETECTED") // DETECTED, EXTRACTED, VALIDATED, REVIEW_REQUIRED, APPROVED, REJECTED, CONFLICTING
+  createdAt        DateTime @default(now())
+
+  results          ComplianceResult[]
+}
+
+model Bidder {
+  id                   String   @id @default(uuid())
+  legalName            String
+  registrationInfo     Json?
+  contactInformation   Json?
+  businessInformation  Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  bids                 Bid[]
+}
+
+model Bid {
+  id           String   @id @default(uuid())
+  tenderId     String
+  tender       Tender   @relation(fields: [tenderId], references: [id])
+  bidderId     String
+  bidder       Bidder   @relation(fields: [bidderId], references: [id])
+  status       String   @default("SUBMITTED")
+  submittedAt  DateTime @default(now())
+  documents    Document[]
+  fraudAnalyses FraudAnalysis[]
+}
+
+model FraudAnalysis {
+  id                    String   @id @default(uuid())
+  bidId                 String
+  bid                   Bid      @relation(fields: [bidId], references: [id])
+  riskScore             Float    // 0 - 100
+  riskLevel             String   // LOW, MEDIUM, HIGH, CRITICAL
+  confidence            Float?   // 0 - 100% evidence-backed confidence
+  investigationPriority String?  // LOW, MEDIUM, HIGH, CRITICAL
+  indicators            Json     // Array of detected fraud indicators
+  correlatedFindings    Json?    // Array of correlated indicator clusters
+  createdAt             DateTime @default(now())
+}
+
+model Document {
+  id                 String   @id @default(uuid())
+  tenderId           String?
+  tender             Tender?  @relation(fields: [tenderId], references: [id])
+  bidId              String?
+  bid                Bid?     @relation(fields: [bidId], references: [id])
+  filename           String
+  fileType           String
+  fileSize           Int
+  hash               String
+  storageReference   String
+  uploadTimestamp    DateTime @default(now())
+  processingStatus   String   @default("UPLOADED") // PROCESSING, PROCESSED, FAILED, REVIEW_REQUIRED
+  extractionMethod   String?
+  extractionConfidence Float?
+  extractedText      String?  // Text content of the document
+
+  evidence           Evidence[]
+}
+
+model Evidence {
+  id                 String   @id @default(uuid())
+  documentId         String
+  document           Document @relation(fields: [documentId], references: [id])
+  type               String
+  value              String
+  numericValue       Float?
+  unit               String?
+  page               Int?
+  section            String?
+  sourceText         String?
+  extractionMethod   String?
+  confidence         Float?
+  validationStatus   String?  // VALID, EXPIRED, EXPIRING, UNKNOWN, INVALID
+  normalizedValue    Json?    // Structured canonical format
+  createdAt          DateTime @default(now())
+
+  complianceResults  ComplianceResult[]
+}
+
+model ComplianceResult {
+  id                  String            @id @default(uuid())
+  requirementId       String
+  requirement         TenderRequirement @relation(fields: [requirementId], references: [id])
+  evidenceId          String?
+  evidence            Evidence?         @relation(fields: [evidenceId], references: [id])
+  status              String            // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, INSUFFICIENT_EVIDENCE, REQUIRES_OFFICER_REVIEW, CONFLICTING_EVIDENCE
+  reason              String?
+  confidence          Float?
+  evaluationTrace     Json?             // Structured evaluation tree trace
+  conflictingEvidence Json?             // Array of structured conflicts
+  reviewStatus        String            @default("PENDING") // PENDING, REVIEWED, OVERRIDDEN
+  originalResult      String?
+  officerDecision     String?
+  officerId           String?
+  officerComment      String?
+  timestamp           DateTime          @default(now())
+}
