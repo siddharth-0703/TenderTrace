@@ -6,7 +6,7 @@ export default function AppLayout() {
   return (
     <div className="app-container">
       <Sidebar />
-      <div className="main-content">
+      <div className="main-content" style={{ marginLeft: '260px' }}>
         <Header />
         <main className="page-container">
           <Outlet />

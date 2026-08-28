@@ -6,6 +6,12 @@ function normaliseIndicators(fa: any) {
     try { fa.indicators = JSON.parse(fa.indicators); } catch { fa.indicators = []; }
   }
   if (!Array.isArray(fa.indicators)) fa.indicators = [];
+
+  if (typeof fa.correlatedFindings === 'string') {
+    try { fa.correlatedFindings = JSON.parse(fa.correlatedFindings); } catch { fa.correlatedFindings = []; }
+  }
+  if (!Array.isArray(fa.correlatedFindings)) fa.correlatedFindings = [];
+
   return fa;
 }
 

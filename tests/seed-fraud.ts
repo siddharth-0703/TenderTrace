@@ -81,7 +81,7 @@ async function run() {
     const bidder1 = await prisma.bidder.create({
         data: {
             legalName: "Alpha Industrial Tech Pvt Ltd",
-            registrationInfo: { pan: "AAACA1234A", gstin: "33AAACA1234A1Z5", address: "Plot 14, Industrial Estate, Chennai" }
+            registrationInfo: JSON.stringify({ pan: "AAACA1234A", gstin: "33AAACA1234A1Z5", address: "Plot 14, Industrial Estate, Chennai" })
         }
     });
     const bid1 = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder1.id } });
@@ -147,7 +147,7 @@ async function run() {
     const bidder3 = await prisma.bidder.create({
         data: {
             legalName: "Delta Fabrications Ltd",
-            registrationInfo: { pan: "DELTP5678B", gstin: "33DELTP5678B1Z2" }
+            registrationInfo: JSON.stringify({ pan: "DELTP5678B", gstin: "33DELTP5678B1Z2" })
         }
     });
     const bid3 = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder3.id } });

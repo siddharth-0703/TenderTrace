@@ -1,14 +1,21 @@
 import client from './client';
 import type { FraudAnalysis } from '../../types/fraud';
 
-/** SQLite stores JSON as text — normalise indicators to always be an array */
+/** SQLite stores JSON as text — normalise indicators and correlatedFindings to always be arrays */
 function normalise(fa: any): FraudAnalysis {
   if (typeof fa.indicators === 'string') {
     try { fa.indicators = JSON.parse(fa.indicators); } catch { fa.indicators = []; }
   }
   if (!Array.isArray(fa.indicators)) fa.indicators = [];
+
+  if (typeof fa.correlatedFindings === 'string') {
+    try { fa.correlatedFindings = JSON.parse(fa.correlatedFindings); } catch { fa.correlatedFindings = []; }
+  }
+  if (!Array.isArray(fa.correlatedFindings)) fa.correlatedFindings = [];
+
   return fa as FraudAnalysis;
 }
+
 
 /** Fetch the most recent FraudAnalysis for a specific bid */
 export async function fetchFraudAnalysis(bidId: string): Promise<FraudAnalysis | null> {
