@@ -9,8 +9,8 @@ export default function CreateTender() {
   
   const [formData, setFormData] = useState({
     title: '',
-    referenceNo: '',
-    department: '',
+    tenderNumber: '',
+    organization: '',
     description: ''
   });
 
@@ -23,8 +23,8 @@ export default function CreateTender() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: data.title,
-          referenceNo: data.referenceNo,
-          department: data.department,
+          tenderNumber: data.tenderNumber,
+          organization: data.organization,
           description: data.description
         }),
       });
@@ -45,7 +45,7 @@ export default function CreateTender() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.referenceNo || !formData.department) {
+    if (!formData.title || !formData.tenderNumber || !formData.organization) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -102,8 +102,8 @@ export default function CreateTender() {
                     type="text" 
                     style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontFamily: 'monospace', fontSize: '14px' }}
                     placeholder="e.g. GEM/2026/IT/042"
-                    value={formData.referenceNo}
-                    onChange={(e) => setFormData({...formData, referenceNo: e.target.value})}
+                    value={formData.tenderNumber}
+                    onChange={(e) => setFormData({...formData, tenderNumber: e.target.value})}
                   />
                 </div>
                 <div>
@@ -114,8 +114,8 @@ export default function CreateTender() {
                     type="text" 
                     style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', fontSize: '14px' }}
                     placeholder="e.g. Department of Electronics"
-                    value={formData.department}
-                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                    value={formData.organization}
+                    onChange={(e) => setFormData({...formData, organization: e.target.value})}
                   />
                 </div>
               </div>

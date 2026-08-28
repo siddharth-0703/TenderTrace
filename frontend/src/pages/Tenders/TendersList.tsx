@@ -77,9 +77,9 @@ export default function TendersList() {
                     <div style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{tender.title}</div>
                   </td>
                   <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                    {tender.referenceNo || tender.id.substring(0, 8)}
+                    {tender.tenderNumber || tender.id.substring(0, 8)}
                   </td>
-                  <td style={{ fontSize: '13px' }}>{tender.department}</td>
+                  <td style={{ fontSize: '13px' }}>{tender.organization}</td>
                   <td style={{ textAlign: 'center', fontWeight: 600 }}>{tender._count?.bids || 0}</td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Not Available</td>
                   <td><span className="badge badge-neutral" style={{ fontSize: '10px' }}>N/A</span></td>

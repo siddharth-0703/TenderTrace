@@ -1,8 +1,8 @@
 export interface Tender {
   id: string;
   title: string;
-  referenceNo: string;
-  department: string;
+  tenderNumber: string;
+  organization: string;
   estimatedValue: number | null;
   status: string;
   processingStatus?: string;

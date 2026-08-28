@@ -78,9 +78,9 @@ export default function TenderDetails() {
           <div>
             <h1 className="text-h1" style={{ marginBottom: '8px' }}>{tender.title}</h1>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              <span className="badge badge-neutral" style={{ fontFamily: 'monospace' }}>{tender.referenceNo || tender.id}</span>
+              <span className="badge badge-neutral" style={{ fontFamily: 'monospace' }}>{tender.tenderNumber || tender.id}</span>
               <span>•</span>
-              <span style={{ fontWeight: 500 }}>{tender.department}</span>
+              <span style={{ fontWeight: 500 }}>{tender.organization}</span>
               <span>•</span>
               <span>Created {new Date(tender.createdAt).toLocaleDateString()}</span>
             </div>

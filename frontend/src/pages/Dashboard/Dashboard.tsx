@@ -148,7 +148,7 @@ export default function Dashboard() {
                     </td>
                     <td>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-muted)', backgroundColor: 'var(--color-background)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {tender.referenceNo || tender.id.substring(0,8)}
+                        {tender.tenderNumber || tender.id.substring(0,8)}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', fontWeight: 600 }}>{tender._count?.bids || 0}</td>
