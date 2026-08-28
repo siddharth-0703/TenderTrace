@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import Dashboard from './pages/Dashboard/Dashboard';
 import TendersList from './pages/Tenders/TendersList';
 import TenderDetails from './pages/Tenders/TenderDetails';
@@ -10,20 +11,22 @@ import ActivityPage from './pages/History/ActivityPage';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/tenders" element={<TendersList />} />
-          <Route path="/tenders/new" element={<CreateTender />} />
-          <Route path="/tenders/:id" element={<TenderDetails />} />
-          <Route path="/bids" element={<BidsList />} />
-          <Route path="/bids/:id" element={<BidDetails />} />
-          <Route path="/activity" element={<ActivityPage />} />
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/tenders" element={<TendersList />} />
+            <Route path="/tenders/new" element={<CreateTender />} />
+            <Route path="/tenders/:id" element={<TenderDetails />} />
+            <Route path="/bids" element={<BidsList />} />
+            <Route path="/bids/:id" element={<BidDetails />} />
+            <Route path="/activity" element={<ActivityPage />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

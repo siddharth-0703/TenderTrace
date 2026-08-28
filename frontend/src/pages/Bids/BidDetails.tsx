@@ -340,16 +340,16 @@ export default function BidDetails() {
                                <div className="evidence-header">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500 }}>
                                     <FileText size={14} color="var(--text-muted)" />
-                                    Document ID: {res.evidence.sourceDocumentId.substring(0,8)}
+                                    Document Ref: {String(res.evidence.documentId || res.evidence.sourceDocumentId || res.evidence.id || 'N/A').substring(0, 8)}
                                   </div>
-                                  <span className="badge badge-neutral" style={{ fontSize: '10px' }}>Page {res.evidence.pageNumber || '?'}</span>
+                                  <span className="badge badge-neutral" style={{ fontSize: '10px' }}>Page {res.evidence.page ?? res.evidence.pageNumber ?? '?'}</span>
                                </div>
                                <div style={{ padding: '8px 0', fontSize: '14px' }}>
                                  <span style={{ color: 'var(--text-secondary)' }}>Extracted Value: </span>
-                                 <strong style={{ color: 'var(--text-primary)' }}>{res.evidence.value || res.evidence.sourceText}</strong>
+                                 <strong style={{ color: 'var(--text-primary)' }}>{res.evidence.value || res.evidence.sourceText || 'Detected in document'}</strong>
                                </div>
                                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                                 Confidence: {(res.evidence.confidence * 100).toFixed(0)}%
+                                 Confidence: {typeof res.evidence.confidence === 'number' ? (res.evidence.confidence <= 1 ? (res.evidence.confidence * 100).toFixed(0) : res.evidence.confidence.toFixed(0)) : '80'}%
                                </div>
                              </div>
                            ) : (

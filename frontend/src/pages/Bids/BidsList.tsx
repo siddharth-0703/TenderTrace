@@ -72,11 +72,11 @@ export default function BidsList() {
               {bids?.map((bid: Bid) => (
                 <tr key={bid.id}>
                   <td>
-                    {bid.bidder?.name ? (
-                      <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{bid.bidder.name}</div>
+                    {(bid.bidder?.legalName || bid.bidder?.name) ? (
+                      <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{bid.bidder?.legalName || bid.bidder?.name}</div>
                     ) : (
                       <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-muted)', fontStyle: 'italic' }}>Bidder identity not established</div>
+                        <div style={{ fontWeight: 600, color: 'var(--color-muted)', fontStyle: 'italic' }}>Bidder identity not established</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Requires document review</div>
                       </div>
                     )}
