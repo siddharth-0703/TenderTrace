@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { FileUpload } from '../../components/common/FileUpload';
 import { ActivityTimeline } from '../../components/common/ActivityTimeline';
+import { RuleDisplay } from '../../components/common/RuleDisplay';
 import type { TenderRequirement } from '../../types';
 
 export default function TenderDetails() {
@@ -293,8 +294,8 @@ export default function TenderDetails() {
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>{req.category}</div>
                         </td>
                         <td>
-                           <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={req.rules || req.description}>
-                            {req.rules || req.description}
+                           <div style={{ maxWidth: '400px' }}>
+                             <RuleDisplay rules={req.rules} fallbackDescription={req.description} />
                            </div>
                         </td>
                         <td>

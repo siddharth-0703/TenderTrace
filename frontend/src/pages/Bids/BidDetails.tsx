@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { FileUpload } from '../../components/common/FileUpload';
 import { ActivityTimeline } from '../../components/common/ActivityTimeline';
+import { RuleDisplay } from '../../components/common/RuleDisplay';
 
 export default function BidDetails() {
   const { id } = useParams<{ id: string }>();
@@ -367,9 +368,9 @@ export default function BidDetails() {
                            
                            <div style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '16px' }}>
                              <div style={{ marginBottom: '12px' }}>
-                               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Applied Rule:</span>
-                               <div style={{ fontFamily: 'monospace', fontSize: '13px', backgroundColor: 'white', padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: '4px' }}>
-                                 {res.requirement?.rules || 'No rule specified'}
+                               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Evaluation Criterion:</span>
+                               <div style={{ backgroundColor: 'white', padding: '10px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: '6px' }}>
+                                 <RuleDisplay rules={res.rule || res.requirement?.rules} fallbackDescription={res.requirement?.description} />
                                </div>
                              </div>
                              
