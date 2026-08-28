@@ -7,6 +7,7 @@ const engine = new ComplianceEngine();
 
 async function run() {
     console.log("Cleaning database...");
+    await prisma.fraudAnalysis.deleteMany();
     await prisma.complianceResult.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.document.deleteMany();
@@ -60,7 +61,8 @@ async function run() {
     const bid1 = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder1.id }});
     await prisma.document.create({
         data: {
-            bid: { connect: { id: bid1.id } }, filename: "doc.pdf", hash: "hash1", fileType: "application/pdf", fileSize: 1024, storageReference: "local",
+            bidId: bid1.id, filename: "doc.pdf", hash: "hash1",
+            fileType: "application/pdf", fileSize: 1024, storageReference: "local/doc.pdf",
             evidence: {
                 createMany: {
                     data: [
@@ -78,13 +80,15 @@ async function run() {
     const bid4 = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder4.id }});
     await prisma.document.create({
         data: {
-            bid: { connect: { id: bid4.id } }, filename: "doc_a.pdf", hash: "hash4a", fileType: "application/pdf", fileSize: 1024, storageReference: "local",
+            bidId: bid4.id, filename: "doc_a.pdf", hash: "hash4a",
+            fileType: "application/pdf", fileSize: 1024, storageReference: "local/doc_a.pdf",
             evidence: { create: { type: "MIN_TURNOVER", value: "7.2 Cr", confidence: 0.99 } }
         }
     });
     await prisma.document.create({
         data: {
-            bid: { connect: { id: bid4.id } }, filename: "doc_b.pdf", hash: "hash4b", fileType: "application/pdf", fileSize: 1024, storageReference: "local",
+            bidId: bid4.id, filename: "doc_b.pdf", hash: "hash4b",
+            fileType: "application/pdf", fileSize: 1024, storageReference: "local/doc_b.pdf",
             evidence: { create: { type: "MIN_TURNOVER", value: "6.4 Cr", confidence: 0.99 } }
         }
     });
@@ -94,7 +98,8 @@ async function run() {
     const bid5 = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder5.id }});
     await prisma.document.create({
         data: {
-            bid: { connect: { id: bid5.id } }, filename: "doc.pdf", hash: "hash5", fileType: "application/pdf", fileSize: 1024, storageReference: "local",
+            bidId: bid5.id, filename: "doc.pdf", hash: "hash5",
+            fileType: "application/pdf", fileSize: 1024, storageReference: "local/doc.pdf",
             evidence: {
                 createMany: {
                     data: [

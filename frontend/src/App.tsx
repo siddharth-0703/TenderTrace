@@ -8,6 +8,9 @@ import CreateTender from './pages/Tenders/CreateTender';
 import BidsList from './pages/Bids/BidsList';
 import BidDetails from './pages/Bids/BidDetails';
 import ActivityPage from './pages/History/ActivityPage';
+import FraudRiskDashboard from './pages/FraudRisk/FraudRiskDashboard';
+import FraudRiskAnalysis from './pages/FraudRisk/FraudRiskAnalysis';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 export default function App() {
   return (
@@ -22,6 +25,14 @@ export default function App() {
             <Route path="/bids" element={<BidsList />} />
             <Route path="/bids/:id" element={<BidDetails />} />
             <Route path="/activity" element={<ActivityPage />} />
+            
+            {/* Fraud & Risk Intelligence module */}
+            <Route path="/fraud-risk" element={<FraudRiskDashboard />} />
+            <Route path="/bids/:bidId/fraud-risk" element={<FraudRiskAnalysis />} />
+            
+            {/* Settings */}
+            <Route path="/settings" element={<SettingsPage />} />
+
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

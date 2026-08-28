@@ -1,16 +1,23 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+<<<<<<< HEAD
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+=======
+>>>>>>> origin/main
 import { PrismaClient } from "@prisma/client";
 import { PdfExtractionService } from "./services/pdfExtractionService";
 import { ComplianceEngine } from "../services/compliance-engine/engine/ComplianceEngine";
+<<<<<<< HEAD
 import { MockFraudAnalysisService } from "../services/fraud-engine/mock/MockFraudAnalysisService";
 import { TenderPackageProcessor } from "../services/compliance-engine/engine/TenderPackageProcessor";
 import { BidComplianceProcessor } from "../services/compliance-engine/evidence/BidComplianceProcessor";
+=======
+import { FraudEngine } from "../services/fraud-engine/FraudEngine";
+>>>>>>> origin/main
 
 export class ActivityLogger {
     static async log(data: {
@@ -54,6 +61,7 @@ const upload = multer({ storage });
 
 const prisma = new PrismaClient();
 const complianceEngine = new ComplianceEngine();
+<<<<<<< HEAD
 const fraudEngine = new MockFraudAnalysisService();
 const packageProcessor = new TenderPackageProcessor();
 const bidProcessor = new BidComplianceProcessor();
@@ -116,6 +124,9 @@ function computeTenderStatus(tender: any): string {
 
     return tender.status || "DRAFT";
 }
+=======
+const fraudEngine = new FraudEngine();
+>>>>>>> origin/main
 
 // --- TENDER APIs ---
 app.get("/api/tenders", async (req, res) => {
@@ -494,17 +505,58 @@ app.put("/api/requirements/:id/approve", async (req, res) => {
     }
 });
 
-// --- BID APIs ---
+// --- GET ALL BIDS (with bidder, tender, fraudAnalyses for the frontend overview table) ---
 app.get("/api/bids", async (req, res) => {
     try {
         const bids = await prisma.bid.findMany({
-            include: { bidder: true, tender: true }
+            include: {
+                bidder: true,
+                tender: true,
+                fraudAnalyses: {
+                    orderBy: { createdAt: "desc" },
+                    take: 1
+                }
+            },
+            orderBy: { submittedAt: "desc" }
         });
         res.json(bids);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
 });
+
+// --- GET LATEST FRAUD ANALYSIS FOR A BID ---
+app.get("/api/bids/:id/fraud-analysis", async (req, res) => {
+    try {
+        const analysis = await prisma.fraudAnalysis.findFirst({
+            where: { bidId: req.params.id },
+            orderBy: { createdAt: "desc" }
+        });
+        if (!analysis) return res.status(404).json({ error: "No fraud analysis found for this bid." });
+        res.json(analysis);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- GET ALL FRAUD ANALYSES ---
+app.get("/api/fraud-analyses", async (req, res) => {
+    try {
+        const analyses = await prisma.fraudAnalysis.findMany({
+            include: {
+                bid: {
+                    include: { bidder: true, tender: true }
+                }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+        res.json(analyses);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 
 app.get("/api/bids/:id", async (req, res) => {
     try {
@@ -649,7 +701,7 @@ app.post("/api/bids/:id/analyze", async (req, res) => {
         const complianceResult = await complianceEngine.evaluateBid(bidId);
         
         // 2. Run Fraud
-        const fraudResult = await fraudEngine.analyze({ bidId, tenderId: "TBD" });
+        const fraudResult = await fraudEngine.analyze({ bidId, tenderId: bidId }); // tenderId resolved inside FraudEngine via DB
 
         await ActivityLogger.log({
             bidId,

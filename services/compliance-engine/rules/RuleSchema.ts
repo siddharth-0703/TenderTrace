@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-
 export const RuleOperatorSchema = z.enum([
     ">=", "<=", ">", "<", "==", "!=", "IN", "EXISTS", "NOT_EXISTS"
 ]);

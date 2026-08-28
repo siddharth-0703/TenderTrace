@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -76,15 +76,29 @@ model Bidder {
 }
 
 model Bid {
-  id           String   @id @default(uuid())
-  tenderId     String
-  tender       Tender   @relation(fields: [tenderId], references: [id])
-  bidderId     String
-  bidder       Bidder   @relation(fields: [bidderId], references: [id])
-  status       String   @default("SUBMITTED")
-  submittedAt  DateTime @default(now())
-  documents    Document[]
-  activityLogs ActivityLog[]
+  id            String          @id @default(uuid())
+  tenderId      String
+  tender        Tender          @relation(fields: [tenderId], references: [id])
+  bidderId      String
+  bidder        Bidder          @relation(fields: [bidderId], references: [id])
+  status        String          @default("SUBMITTED")
+  submittedAt   DateTime        @default(now())
+  documents     Document[]
+  activityLogs  ActivityLog[]
+  fraudAnalyses FraudAnalysis[]
+}
+
+model FraudAnalysis {
+  id                    String   @id @default(uuid())
+  bidId                 String
+  bid                   Bid      @relation(fields: [bidId], references: [id])
+  riskScore             Float    // 0 - 100
+  riskLevel             String   // LOW, MEDIUM, HIGH, CRITICAL
+  confidence            Float?   // 0 - 100% evidence-backed confidence
+  investigationPriority String?  // LOW, MEDIUM, HIGH, CRITICAL
+  indicators            String   // Stored as stringified JSON for SQLite compatibility
+  correlatedFindings    String?  // Stored as stringified JSON for SQLite compatibility
+  createdAt             DateTime @default(now())
 }
 
 model Document {

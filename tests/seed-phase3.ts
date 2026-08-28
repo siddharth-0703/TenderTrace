@@ -8,6 +8,7 @@ const complianceEngine = new ComplianceEngine();
 
 async function run() {
     console.log("Cleaning database...");
+    await prisma.fraudAnalysis.deleteMany();
     await prisma.complianceResult.deleteMany();
     await prisma.evidence.deleteMany();
     await prisma.document.deleteMany();
@@ -95,7 +96,8 @@ async function run() {
         const bid = await prisma.bid.create({ data: { tenderId: tender.id, bidderId: bidder.id }});
         await prisma.document.create({
             data: {
-                bid: { connect: { id: bid.id } }, filename: "financials.pdf", hash: "hashX", fileType: "application/pdf", fileSize: 1024, storageReference: "local",
+                bidId: bid.id, filename: "financials.pdf", hash: "hashX",
+                fileType: "application/pdf", fileSize: 1024, storageReference: "local/financials.pdf",
                 evidence: {
                     create: { type: "minimumTurnover", value: "7.2 Cr", numericValue: 72000000, confidence: 0.99 }
                 }

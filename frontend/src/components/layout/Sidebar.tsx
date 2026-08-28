@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Activity, Shield, Bell, HelpCircle, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Activity, Shield, ShieldAlert, Bell, HelpCircle, Settings } from 'lucide-react';
 
 export function Sidebar() {
   const workspaceItems = [
@@ -7,13 +7,14 @@ export function Sidebar() {
     { name: 'Tenders', path: '/tenders', icon: <FileText size={18} /> },
     { name: 'Bids', path: '/bids', icon: <Users size={18} /> },
     { name: 'Compliance', path: '/tenders', icon: <Shield size={18} /> },
+    { name: 'Fraud & Risk', path: '/fraud-risk', icon: <ShieldAlert size={18} /> },
     { name: 'Audit Log', path: '/activity', icon: <Activity size={18} /> },
   ];
 
   const systemItems = [
     { name: 'Notifications', path: '#', icon: <Bell size={18} /> },
+    { name: 'Settings', path: '/settings', icon: <Settings size={18} /> },
     { name: 'Help', path: '#', icon: <HelpCircle size={18} /> },
-    { name: 'Settings', path: '#', icon: <Settings size={18} /> },
   ];
 
   return (
@@ -62,8 +63,8 @@ export function Sidebar() {
           <NavLink
             key={item.name}
             to={item.path}
-            className="sidebar-link"
-            style={{ opacity: 0.6 }}
+            className={({ isActive }) => `sidebar-link ${item.path !== '#' && isActive ? 'active' : ''}`}
+            style={{ opacity: item.path === '#' ? 0.6 : 1 }}
             onClick={(e) => {
               if (item.path === '#') e.preventDefault();
             }}
@@ -103,3 +104,5 @@ export function Sidebar() {
     </aside>
   );
 }
+
+export default Sidebar;

@@ -19,3 +19,5 @@ logs/
 error.txt
 BID.pdf
 TENDER.pdf
+*.db-journal
+dev.db

@@ -11,7 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node backend/server.ts",
     "test-slice": "ts-node tests/seed-vertical-slice.ts",
-    "postinstall": "prisma skills sync || exit 0",
+    "postinstall": "prisma generate",
     "test-requirement": "ts-node tests/test-requirement.ts",
     "test-phase3": "ts-node tests/seed-phase3.ts",
     "test-phase5": "ts-node tests/seed-phase5.ts",
@@ -20,7 +20,8 @@
     "test-phase8": "ts-node tests/phase8/test-extraction.ts",
     "test-phase9": "ts-node tests/phase9/test-phase9.ts",
     "test-real": "ts-node tests/phase9/test-real-documents.ts",
-    "match-tender-bid": "ts-node scripts/match-tender-bid.ts"
+    "match-tender-bid": "ts-node scripts/match-tender-bid.ts",
+    "test-fraud": "ts-node tests/seed-fraud.ts"
   },
   "repository": {
     "type": "git",
