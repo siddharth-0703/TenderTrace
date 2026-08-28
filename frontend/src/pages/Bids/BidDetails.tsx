@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bidApi } from '../../services/api/bidApi';
@@ -20,6 +20,11 @@ export default function BidDetails() {
     queryKey: ['bid', id],
     queryFn: () => bidApi.getBidDetails(id!),
     enabled: !!id,
+    refetchInterval: (query) => {
+      const docs = query.state.data?.documents;
+      const isExtracting = docs?.some((d: any) => d.processingStatus === 'EXTRACTING' || d.processingStatus === 'PROCESSING');
+      return isExtracting ? 2000 : false;
+    }
   });
 
   const { data: matches, isLoading: matchesLoading } = useQuery({
@@ -48,9 +53,43 @@ export default function BidDetails() {
     mutationFn: () => bidApi.matchBidAgainstTender(bid!.tenderId, id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bidMatches', bid!.tenderId, id] });
+      queryClient.invalidateQueries({ queryKey: ['bid', id] });
+      queryClient.invalidateQueries({ queryKey: ['tender', bid!.tenderId] });
       setActiveTab('compliance');
     },
   });
+
+  const complianceItems: any[] = useMemo(() => {
+    if (Array.isArray(matches) && matches.length > 0) {
+      return matches.map((req: any) => {
+        const directMatch = req.matches?.[0];
+        const directResult = req.results?.[0] || bid?.complianceResults?.find((cr: any) => cr.requirementId === req.id);
+        const status = directResult?.status || (directMatch ? 'COMPLIANT' : 'INSUFFICIENT_EVIDENCE');
+        return {
+          id: req.id,
+          requirement: req,
+          status: status,
+          evidence: directMatch?.evidence || directResult?.evidence,
+          rule: req.rules || req.description,
+          score: directMatch?.matchScore || directResult?.confidence
+        };
+      });
+    }
+    if (Array.isArray(bid?.complianceResults) && bid.complianceResults.length > 0) {
+      return bid.complianceResults.map((cr: any) => ({
+        id: cr.id,
+        requirement: cr.requirement,
+        status: cr.status,
+        evidence: cr.evidence,
+        rule: cr.requirement?.rules || cr.requirement?.description,
+        score: cr.confidence
+      }));
+    }
+    if (matches && Array.isArray((matches as any).matches)) {
+      return (matches as any).matches;
+    }
+    return [];
+  }, [matches, bid?.complianceResults]);
 
   if (isLoading || matchesLoading) return <LoadingSpinner text="Loading evaluation workspace..." />;
   if (isError) return <ErrorState title="Failed to load workspace" onRetry={() => refetch()} />;
@@ -63,15 +102,17 @@ export default function BidDetails() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'documents', label: `Documents (${bid.documents?.length || 0})` },
-    { id: 'compliance', label: 'Compliance & Evidence' },
+    { id: 'compliance', label: `Compliance & Evidence (${complianceItems.length})` },
     { id: 'history', label: 'Audit Trail' },
   ];
 
-  // Derive stats safely with null checks
-  const totalMatches = matches?.matches?.length || 0;
-  const verifiedMatches = matches?.matches?.filter((m: any) => m.status === 'COMPLIANT')?.length || 0;
-  const reviewRequired = matches?.matches?.filter((m: any) => m.status === 'CONFLICTING_EVIDENCE' || m.status === 'INSUFFICIENT_EVIDENCE')?.length || 0;
-  const nonCompliant = matches?.matches?.filter((m: any) => m.status === 'NON_COMPLIANT')?.length || 0;
+  // Derive stats safely
+  const totalMatches = complianceItems.length;
+  const verifiedMatches = complianceItems.filter((m: any) => m.status === 'COMPLIANT').length;
+  const reviewRequired = complianceItems.filter((m: any) => m.status === 'CONFLICTING_EVIDENCE' || m.status === 'INSUFFICIENT_EVIDENCE' || m.status === 'REQUIRES_OFFICER_REVIEW').length;
+  const nonCompliant = complianceItems.filter((m: any) => m.status === 'NON_COMPLIANT').length;
+
+  const bidderDisplayName = bid.bidder?.legalName || bid.bidder?.name || 'Bidder ' + bid.id.substring(0, 8);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -86,25 +127,21 @@ export default function BidDetails() {
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
           <div>
-            {bid.bidder?.name ? (
-              <h1 className="text-h1" style={{ marginBottom: '8px', color: 'var(--color-primary)' }}>{bid.bidder.name}</h1>
-            ) : (
-              <h1 className="text-h1" style={{ marginBottom: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Bidder identity not established</h1>
-            )}
+            <h1 className="text-h1" style={{ marginBottom: '8px', color: 'var(--color-primary)' }}>{bidderDisplayName}</h1>
             
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>
               <span style={{ fontWeight: 600 }}>Tender: {bid.tender?.title || bid.tenderId.substring(0, 8)}</span>
               <span>•</span>
               <span className="badge badge-neutral" style={{ fontFamily: 'monospace' }}>Bid Ref: {bid.id.substring(0, 8)}</span>
               <span>•</span>
-              <span>Submitted: {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString() : 'N/A'}</span>
+              <span>Submitted: {(bid.submittedAt || bid.submissionDate) ? new Date((bid.submittedAt || bid.submissionDate)!).toLocaleDateString() : 'N/A'}</span>
             </div>
           </div>
           
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center', padding: '12px 24px', backgroundColor: 'var(--color-background)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verification</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{verifiedMatches} / {totalMatches || '-'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{verifiedMatches} / {totalMatches > 0 ? totalMatches : '-'}</div>
             </div>
             <div style={{ width: '1px', height: '32px', backgroundColor: 'var(--color-border)' }}></div>
             <div style={{ textAlign: 'center' }}>
@@ -213,7 +250,7 @@ export default function BidDetails() {
             <div className="card mb-6" style={{ padding: '24px' }}>
                <h3 className="text-h3" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', marginBottom: '16px' }}>System Assessment</h3>
                
-               {(!matches?.matches || matches.matches.length === 0) ? (
+               {complianceItems.length === 0 ? (
                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
                    <p>No evaluation data available. Go to Documents to run the compliance evaluation.</p>
                  </div>
@@ -241,9 +278,9 @@ export default function BidDetails() {
             </div>
 
             {/* Detailed Traceability view */}
-            {matches?.matches && matches.matches.length > 0 && (
+            {complianceItems.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {matches.matches.map((res: any) => {
+                {complianceItems.map((res: any) => {
                   
                   const isConflict = res.status === 'CONFLICTING_EVIDENCE';
                   const isMissing = res.status === 'INSUFFICIENT_EVIDENCE';

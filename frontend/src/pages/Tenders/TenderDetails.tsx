@@ -342,11 +342,11 @@ export default function TenderDetails() {
                   <tbody>
                     {tender.bids?.map((bid: any) => (
                       <tr key={bid.id}>
-                        <td style={{ fontWeight: 600 }}>{bid.bidder?.name || bid.id}</td>
+                        <td style={{ fontWeight: 600 }}>{bid.bidder?.legalName || bid.bidder?.name || 'Bidder ' + bid.id.substring(0, 8)}</td>
                         <td>
                           <StatusBadge status={bid.status} />
                         </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString() : 'N/A'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{bid.submittedAt || bid.submissionDate ? new Date(bid.submittedAt || bid.submissionDate).toLocaleDateString() : 'N/A'}</td>
                         <td style={{ textAlign: 'right' }}>
                            <button 
                              className="btn btn-primary"
@@ -366,9 +366,98 @@ export default function TenderDetails() {
         )}
 
         {activeTab === 'compliance' && (
-          <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <h3 className="text-h3">Compliance Overview</h3>
-            <p>Select a specific bid from the Bidders tab to view detailed compliance results and evidence tracing.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 className="text-h3" style={{ margin: 0, marginBottom: '4px' }}>Comparative Compliance Matrix</h3>
+                  <p className="text-muted" style={{ fontSize: '14px', margin: 0 }}>
+                    Cross-bidder evaluation against {tender.requirements?.length || 0} extracted tender requirements.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div className="badge badge-neutral" style={{ padding: '6px 12px', fontSize: '13px' }}>
+                    <strong>{tender.bids?.length || 0}</strong> Bidders Registered
+                  </div>
+                  <div className="badge badge-primary" style={{ padding: '6px 12px', fontSize: '13px' }}>
+                    <strong>{tender.requirements?.length || 0}</strong> Active Requirements
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {tender.bids?.length === 0 ? (
+              <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                <EmptyState 
+                  title="No Bidders Submitted Yet" 
+                  message="Register a bidder from the Bidders tab to upload their proposal and evaluate compliance." 
+                />
+                <button 
+                  className="btn btn-primary" 
+                  style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => setActiveTab('bids')}
+                >
+                  <Plus size={16} /> Go to Bidders Tab
+                </button>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Bidder Submissions & Evaluation Status</h4>
+                </div>
+                <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Bidder Legal Name</th>
+                        <th>Bid Reference</th>
+                        <th>Submission Date</th>
+                        <th>Documents</th>
+                        <th>Evaluation Status</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tender.bids?.map((bid: any) => (
+                        <tr key={bid.id}>
+                          <td>
+                            <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                              {bid.bidder?.legalName || bid.bidder?.name || 'Bidder ' + bid.id.substring(0, 8)}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              {bid.bidder?.contactInformation ? 'Contact verified' : 'Identity registered'}
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', backgroundColor: 'var(--color-background)', padding: '2px 6px', borderRadius: '4px' }}>
+                              {bid.id.substring(0, 8)}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            {bid.submittedAt || bid.submissionDate ? new Date(bid.submittedAt || bid.submissionDate).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={{ fontSize: '13px' }}>
+                            {bid.documents?.length || 0} document(s)
+                          </td>
+                          <td>
+                            <StatusBadge status={bid.status || 'SUBMITTED'} />
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button 
+                              className="btn btn-primary"
+                              style={{ padding: '6px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                              onClick={() => navigate(`/bids/${bid.id}`)}
+                            >
+                              <PlayCircle size={14} /> Open Compliance
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -74,11 +74,13 @@ export interface Bid {
   tenderId: string;
   bidderId: string;
   status: string;
-  submissionDate: string;
+  submittedAt?: string;
+  submissionDate?: string;
   createdAt: string;
   updatedAt: string;
   documents?: Document[];
   tender?: Tender;
+  complianceResults?: any[];
   _count?: {
     documents: number;
   };
@@ -87,9 +89,13 @@ export interface Bid {
 
 export interface Bidder {
   id: string;
-  name: string;
-  contactEmail: string;
-  gstin: string | null;
+  name?: string;
+  legalName?: string;
+  contactEmail?: string;
+  contactInformation?: string | null;
+  registrationInfo?: string | null;
+  businessInformation?: string | null;
+  gstin?: string | null;
   createdAt: string;
 }
 
