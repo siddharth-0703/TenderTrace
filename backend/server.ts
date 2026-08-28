@@ -89,6 +89,34 @@ app.get("/api/dashboard/stats", async (req, res) => {
     }
 });
 
+// --- Helper: Compute dynamic tender status ---
+function computeTenderStatus(tender: any): string {
+    const bids = tender.bids || [];
+    const reqCount = tender.requirements?.length ?? tender._count?.requirements ?? 0;
+    const docCount = tender.documents?.length ?? tender._count?.documents ?? 0;
+
+    if (bids.length > 0) {
+        const allDecided = bids.every((b: any) => b.status === 'APPROVED' || b.status === 'REJECTED' || b.status === 'UNDER_REVIEW');
+        const anyApproved = bids.some((b: any) => b.status === 'APPROVED');
+        const allRejected = bids.every((b: any) => b.status === 'REJECTED');
+
+        if (allRejected) return "EVALUATED";
+        if (anyApproved) return "AWARD_PENDING";
+        if (allDecided) return "EVALUATED";
+        return "UNDER_EVALUATION";
+    }
+
+    if (reqCount > 0) {
+        return "READY";
+    }
+
+    if (docCount > 0) {
+        return "UNDER_EVALUATION";
+    }
+
+    return tender.status || "DRAFT";
+}
+
 // --- TENDER APIs ---
 app.get("/api/tenders", async (req, res) => {
     try {
@@ -96,11 +124,21 @@ app.get("/api/tenders", async (req, res) => {
             include: {
                 _count: {
                     select: { documents: true, requirements: true, bids: true }
+                },
+                bids: {
+                    select: { id: true, status: true }
                 }
             },
             orderBy: { createdAt: 'desc' }
         });
-        res.json(tenders);
+
+        const formatted = tenders.map(t => ({
+            ...t,
+            processingStatus: computeTenderStatus(t),
+            status: computeTenderStatus(t)
+        }));
+
+        res.json(formatted);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
@@ -121,7 +159,13 @@ app.get("/api/tenders/:id", async (req, res) => {
             }
         });
         if (!tender) return res.status(404).json({ error: "Not found" });
-        res.json(tender);
+
+        const dynamicStatus = computeTenderStatus(tender);
+        res.json({
+            ...tender,
+            processingStatus: dynamicStatus,
+            status: dynamicStatus
+        });
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }

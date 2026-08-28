@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bidApi } from '../../services/api/bidApi';
-import { PlayCircle, Loader2, ArrowLeft, CheckCircle, AlertTriangle, ShieldAlert, XCircle, FileText, Check, HelpCircle, Ban } from 'lucide-react';
+import { PlayCircle, Loader2, ArrowLeft, CheckCircle, AlertTriangle, ShieldAlert, XCircle, FileText, Check, HelpCircle, Ban, RotateCcw } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -22,6 +22,7 @@ export default function BidDetails() {
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'compliance' | 'history'>(initialTab);
   const [decisionNote, setDecisionNote] = useState('');
   const [decisionFeedback, setDecisionFeedback] = useState<string | null>(null);
+  const [isModifyingDecision, setIsModifyingDecision] = useState(false);
 
   const { data: bid, isLoading, isError, refetch } = useQuery({
     queryKey: ['bid', id],
@@ -420,7 +421,7 @@ export default function BidDetails() {
 
                 {/* Officer Decision Panel */}
                 <div className="card" style={{ padding: '24px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                     <div>
                       <h3 className="text-h3" style={{ fontSize: '15px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', margin: 0 }}>
                         Authorized Officer Determination
@@ -430,7 +431,7 @@ export default function BidDetails() {
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Current Status:</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Official Status:</span>
                       <StatusBadge status={bid.status || 'SUBMITTED'} />
                     </div>
                   </div>
@@ -442,63 +443,127 @@ export default function BidDetails() {
                     </div>
                   )}
 
-                  <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Officer Remarks / Evaluation Note (Optional)
-                    </label>
-                    <textarea 
-                      value={decisionNote}
-                      onChange={(e) => setDecisionNote(e.target.value)}
-                      placeholder="Add justification or specific remarks for audit compliance..."
-                      rows={2}
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px 12px', 
-                        borderRadius: '4px', 
-                        border: '1px solid var(--color-border)', 
-                        fontSize: '13px', 
-                        backgroundColor: 'var(--color-background)',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-                  
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'flex-start' }}>
-                    <button 
-                      className="btn btn-success" 
-                      onClick={() => decisionMutation.mutate({ decision: 'APPROVED', comment: decisionNote })}
-                      disabled={decisionMutation.isPending}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
-                    >
-                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Check size={15} />}
-                      Approve Bid
-                    </button>
-                    
-                    <button 
-                      className="btn btn-outline" 
-                      onClick={() => decisionMutation.mutate({ decision: 'CLARIFICATION_REQUESTED', comment: decisionNote })}
-                      disabled={decisionMutation.isPending}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px', backgroundColor: 'white' }}
-                    >
-                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <HelpCircle size={15} />}
-                      Request Clarification
-                    </button>
-                    
-                    <button 
-                      className="btn btn-danger" 
-                      onClick={() => {
-                        const confirmed = window.confirm('Are you sure you want to REJECT this bid? This will be recorded in the audit trail.');
-                        if (confirmed) {
-                          decisionMutation.mutate({ decision: 'REJECTED', comment: decisionNote });
-                        }
-                      }}
-                      disabled={decisionMutation.isPending}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
-                    >
-                      {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Ban size={15} />}
-                      Reject Bid
-                    </button>
-                  </div>
+                  {/* If decision already exists and not modifying */}
+                  {['APPROVED', 'REJECTED', 'UNDER_REVIEW'].includes(bid.status) && !isModifyingDecision ? (
+                    <div style={{ 
+                      padding: '16px 20px', 
+                      borderRadius: '6px', 
+                      backgroundColor: bid.status === 'APPROVED' ? 'rgba(22,101,52,0.06)' : bid.status === 'REJECTED' ? 'rgba(197,34,31,0.06)' : 'rgba(180,83,9,0.06)',
+                      border: `1px solid ${bid.status === 'APPROVED' ? 'rgba(22,101,52,0.25)' : bid.status === 'REJECTED' ? 'rgba(197,34,31,0.25)' : 'rgba(180,83,9,0.25)'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '16px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {bid.status === 'APPROVED' ? (
+                          <CheckCircle size={24} color="var(--color-success)" />
+                        ) : bid.status === 'REJECTED' ? (
+                          <XCircle size={24} color="var(--color-error)" />
+                        ) : (
+                          <AlertTriangle size={24} color="var(--color-warning)" />
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '14px', color: bid.status === 'APPROVED' ? 'var(--color-success)' : bid.status === 'REJECTED' ? 'var(--color-error)' : 'var(--color-warning)' }}>
+                            {bid.status === 'APPROVED' && 'OFFICIAL DECISION: BID APPROVED & QUALIFIED'}
+                            {bid.status === 'REJECTED' && 'OFFICIAL DECISION: BID DISQUALIFIED & REJECTED'}
+                            {bid.status === 'UNDER_REVIEW' && 'OFFICIAL DECISION: CLARIFICATION REQUESTED'}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            {bid.status === 'APPROVED' && 'This bid has satisfied mandatory procurement criteria and has been formally accepted.'}
+                            {bid.status === 'REJECTED' && 'This bid failed mandatory compliance rules and was disqualified by the authorized officer.'}
+                            {bid.status === 'UNDER_REVIEW' && 'The evaluation has been paused pending receipt of clarifying documents from the bidder.'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button 
+                        className="btn btn-outline" 
+                        onClick={() => setIsModifyingDecision(true)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 14px', backgroundColor: 'white' }}
+                      >
+                        <RotateCcw size={13} /> Modify Determination
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ marginTop: '12px', marginBottom: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Officer Remarks / Evaluation Note (Optional)
+                        </label>
+                        <textarea 
+                          value={decisionNote}
+                          onChange={(e) => setDecisionNote(e.target.value)}
+                          placeholder="Add justification or specific remarks for audit compliance..."
+                          rows={2}
+                          style={{ 
+                            width: '100%', 
+                            padding: '10px 12px', 
+                            borderRadius: '4px', 
+                            border: '1px solid var(--color-border)', 
+                            fontSize: '13px', 
+                            backgroundColor: 'var(--color-background)',
+                            resize: 'vertical'
+                          }}
+                        />
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'flex-start' }}>
+                        <button 
+                          className="btn btn-success" 
+                          onClick={() => {
+                            decisionMutation.mutate({ decision: 'APPROVED', comment: decisionNote });
+                            setIsModifyingDecision(false);
+                          }}
+                          disabled={decisionMutation.isPending}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
+                        >
+                          {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Check size={15} />}
+                          Approve Bid
+                        </button>
+                        
+                        <button 
+                          className="btn btn-outline" 
+                          onClick={() => {
+                            decisionMutation.mutate({ decision: 'CLARIFICATION_REQUESTED', comment: decisionNote });
+                            setIsModifyingDecision(false);
+                          }}
+                          disabled={decisionMutation.isPending}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px', backgroundColor: 'white' }}
+                        >
+                          {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <HelpCircle size={15} />}
+                          Request Clarification
+                        </button>
+                        
+                        <button 
+                          className="btn btn-danger" 
+                          onClick={() => {
+                            const confirmed = window.confirm('Are you sure you want to REJECT this bid? This will be recorded in the audit trail.');
+                            if (confirmed) {
+                              decisionMutation.mutate({ decision: 'REJECTED', comment: decisionNote });
+                              setIsModifyingDecision(false);
+                            }
+                          }}
+                          disabled={decisionMutation.isPending}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '13px' }}
+                        >
+                          {decisionMutation.isPending ? <Loader2 className="animate-spin" size={15} /> : <Ban size={15} />}
+                          Reject Bid
+                        </button>
+
+                        {isModifyingDecision && (
+                          <button 
+                            className="btn btn-outline" 
+                            onClick={() => setIsModifyingDecision(false)}
+                            style={{ padding: '8px 14px', fontSize: '13px' }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
