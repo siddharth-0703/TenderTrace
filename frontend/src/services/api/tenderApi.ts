@@ -25,5 +25,9 @@ export const tenderApi = {
   getRequirements: async (id: string): Promise<TenderRequirement[]> => {
     const { data } = await apiClient.get(`/tenders/${id}/requirements`);
     return data;
+  },
+  deleteTender: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const { data } = await apiClient.delete(`/tenders/${id}`);
+    return data;
   }
 };

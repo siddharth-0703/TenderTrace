@@ -1,4 +1,4 @@
-import { Clock, CheckCircle, UploadCloud, AlertTriangle, XCircle, Play, FileText } from 'lucide-react';
+import { Clock, CheckCircle, UploadCloud, AlertTriangle, XCircle, Play, FileText, Trash2 } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
@@ -7,6 +7,7 @@ interface ActivityItem {
   createdAt: string;
   tenderId?: string | null;
   bidId?: string | null;
+  metadata?: string | null;
 }
 
 interface ActivityTimelineProps {
@@ -30,6 +31,16 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
     <div>
       {activities.map((activity, idx) => {
         const { icon, bg } = getIconConfig(activity.type);
+        
+        let parsedMeta: any = null;
+        if (activity.metadata) {
+          try {
+            parsedMeta = typeof activity.metadata === 'string' ? JSON.parse(activity.metadata) : activity.metadata;
+          } catch (e) {
+            // ignore JSON parse error
+          }
+        }
+
         return (
           <div key={activity.id} style={{ display: 'flex', gap: '14px', paddingBottom: idx < activities.length - 1 ? '20px' : '0', position: 'relative' }}>
             {/* Timeline line */}
@@ -60,9 +71,21 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                   {formatTimeAgo(new Date(activity.createdAt))}
                 </time>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                {activity.type}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--color-background)', padding: '1px 6px', borderRadius: '3px' }}>
+                  {activity.type}
+                </span>
+                {parsedMeta?.tenderNumber && (
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    Ref: {parsedMeta.tenderNumber}
+                  </span>
+                )}
+                {parsedMeta?.organization && (
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    • {parsedMeta.organization}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -72,6 +95,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
 }
 
 function getIconConfig(type: string) {
+  if (type.includes('DELETED'))   return { icon: <Trash2 size={15} color="#c5221f" />, color: '#c5221f', bg: '#fce8e6' };
   if (type.includes('UPLOADED'))   return { icon: <UploadCloud size={15} color="#1a73e8" />, color: '#1a73e8', bg: 'var(--color-info-bg)' };
   if (type.includes('COMPLETED') || type.includes('PROCESSED') || type.includes('APPROVED'))
     return { icon: <CheckCircle size={15} color="#188038" />, color: '#188038', bg: 'var(--color-success-bg)' };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tenderApi } from '../../services/api/tenderApi';
-import { PlayCircle, Loader2, ArrowLeft, Plus } from 'lucide-react';
+import { PlayCircle, Loader2, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -46,6 +46,27 @@ export default function TenderDetails() {
       setActiveTab('requirements');
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => tenderApi.deleteTender(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenders'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['globalActivity'] });
+      navigate('/tenders');
+    },
+  });
+
+  const handleDeleteTender = () => {
+    if (!tender) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete this tender: "${tender.title}"?\n\nThis will remove the tender from active workspace and permanently log the deletion event in the audit trail.`
+    );
+    if (confirmed) {
+      deleteMutation.mutate();
+    }
+  };
 
   if (isLoading) return <LoadingSpinner text="Loading workspace..." />;
   if (isError) return <ErrorState title="Failed to load tender workspace" onRetry={() => refetch()} />;
@@ -109,8 +130,18 @@ export default function TenderDetails() {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
-            <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
+              <button 
+                onClick={handleDeleteTender}
+                disabled={deleteMutation.isPending}
+                className="btn btn-outline"
+                style={{ color: 'var(--color-error)', borderColor: 'rgba(197,34,31,0.3)', padding: '6px 12px', fontSize: '12px' }}
+                title="Delete this tender"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
           </div>
         </div>
 

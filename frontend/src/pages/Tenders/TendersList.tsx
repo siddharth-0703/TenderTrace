@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { tenderApi } from '../../services/api/tenderApi';
 import type { Tender } from '../../types';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -10,10 +10,32 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 
 export default function TendersList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const { data: tenders, isLoading, isError, refetch } = useQuery({
     queryKey: ['tenders'],
     queryFn: tenderApi.getTenders,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => tenderApi.deleteTender(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenders'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['globalActivity'] });
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent, tender: Tender) => {
+    e.stopPropagation();
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${tender.title}" (${tender.tenderNumber || tender.id.substring(0, 8)})?\n\nThis action will be permanently recorded in the system audit history.`
+    );
+    if (confirmed) {
+      deleteMutation.mutate(tender.id);
+    }
+  };
 
   if (isLoading) return <LoadingSpinner text="Loading tenders..." />;
   if (isError) return <ErrorState title="Failed to load tenders" onRetry={() => refetch()} />;
@@ -67,7 +89,7 @@ export default function TendersList() {
                 <th>Closing</th>
                 <th>Risk</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -87,13 +109,24 @@ export default function TendersList() {
                     <StatusBadge status={tender.processingStatus || tender.status || 'DRAFT'} />
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button 
-                      className="btn btn-outline"
-                      style={{ padding: '4px 12px', fontSize: '12px' }}
-                      onClick={() => navigate(`/tenders/${tender.id}`)}
-                    >
-                      Review
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-outline"
+                        style={{ padding: '4px 12px', fontSize: '12px' }}
+                        onClick={() => navigate(`/tenders/${tender.id}`)}
+                      >
+                        Review
+                      </button>
+                      <button 
+                        className="btn btn-outline"
+                        title="Delete Tender"
+                        style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-error)', borderColor: 'rgba(197,34,31,0.2)' }}
+                        onClick={(e) => handleDelete(e, tender)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

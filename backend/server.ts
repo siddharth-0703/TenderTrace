@@ -14,9 +14,9 @@ import { BidComplianceProcessor } from "../services/compliance-engine/evidence/B
 
 export class ActivityLogger {
     static async log(data: {
-        tenderId?: string;
-        bidId?: string;
-        documentId?: string;
+        tenderId?: string | null;
+        bidId?: string | null;
+        documentId?: string | null;
         type: string;
         message: string;
         metadata?: any;
@@ -142,6 +142,103 @@ app.post("/api/tenders", async (req, res) => {
         res.status(201).json(tender);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
+    }
+});
+
+app.delete("/api/tenders/:id", async (req, res) => {
+    try {
+        const tenderId = req.params.id;
+        const tender = await prisma.tender.findUnique({
+            where: { id: tenderId },
+            include: {
+                documents: true,
+                requirements: true,
+                bids: { include: { bidder: true, documents: true } }
+            }
+        });
+
+        if (!tender) {
+            return res.status(404).json({ error: "Tender not found" });
+        }
+
+        // 1. Record immutable audit log entry BEFORE deletion
+        await ActivityLogger.log({
+            tenderId: null,
+            type: "TENDER_DELETED",
+            message: `Tender deleted: "${tender.title}" (${tender.tenderNumber || tender.id.substring(0, 8)}) [Dept: ${tender.organization}]`,
+            metadata: {
+                tenderId: tender.id,
+                title: tender.title,
+                tenderNumber: tender.tenderNumber,
+                organization: tender.organization,
+                description: tender.description,
+                deletedAt: new Date().toISOString(),
+                stats: {
+                    documentsCount: tender.documents.length,
+                    requirementsCount: tender.requirements.length,
+                    bidsCount: tender.bids.length,
+                    bidders: tender.bids.map(b => b.bidder?.legalName || b.bidderId)
+                }
+            }
+        });
+
+        // 2. Unlink existing activity logs so previous history is preserved without FK violations
+        await prisma.activityLog.updateMany({
+            where: { tenderId: tenderId },
+            data: { tenderId: null }
+        });
+
+        const reqIds = tender.requirements.map(r => r.id);
+        const bidIds = tender.bids.map(b => b.id);
+        const tenderDocIds = tender.documents.map(d => d.id);
+        const bidDocIds = tender.bids.flatMap(b => b.documents.map(d => d.id));
+        const allDocIds = [...tenderDocIds, ...bidDocIds];
+
+        if (reqIds.length > 0) {
+            await prisma.requirementEvidenceMatch.deleteMany({
+                where: { requirementId: { in: reqIds } }
+            });
+            await prisma.complianceResult.deleteMany({
+                where: { requirementId: { in: reqIds } }
+            });
+        }
+
+        if (allDocIds.length > 0) {
+            await prisma.evidence.deleteMany({
+                where: { documentId: { in: allDocIds } }
+            });
+        }
+
+        if (reqIds.length > 0) {
+            await prisma.tenderRequirement.deleteMany({
+                where: { id: { in: reqIds } }
+            });
+        }
+
+        if (allDocIds.length > 0) {
+            await prisma.document.deleteMany({
+                where: { id: { in: allDocIds } }
+            });
+        }
+
+        if (bidIds.length > 0) {
+            await prisma.activityLog.updateMany({
+                where: { bidId: { in: bidIds } },
+                data: { bidId: null }
+            });
+            await prisma.bid.deleteMany({
+                where: { id: { in: bidIds } }
+            });
+        }
+
+        await prisma.tender.delete({
+            where: { id: tenderId }
+        });
+
+        res.json({ success: true, message: "Tender deleted successfully and recorded in audit trail." });
+    } catch (err: any) {
+        console.error("Failed to delete tender:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -372,10 +469,17 @@ app.get("/api/bids/:id", async (req, res) => {
 
 app.post("/api/bidders", async (req, res) => {
     try {
+        const { name, legalName, email, phone, contactInformation, registrationInfo, businessInformation } = req.body;
+        const contact = contactInformation || (email || phone ? JSON.stringify({ email, phone }) : null);
         const bidder = await prisma.bidder.create({
-            data: req.body
+            data: {
+                legalName: legalName || name || "Bidder " + Date.now().toString().slice(-4),
+                contactInformation: contact,
+                registrationInfo: registrationInfo || null,
+                businessInformation: businessInformation || null
+            }
         });
-        res.status(201).json(bidder);
+        res.status(201).json({ ...bidder, name: bidder.legalName });
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
