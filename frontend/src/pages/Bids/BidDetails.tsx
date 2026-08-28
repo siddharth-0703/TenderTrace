@@ -134,6 +134,13 @@ export default function BidDetails() {
   const reviewRequired = complianceItems.filter((m: any) => m.status === 'CONFLICTING_EVIDENCE' || m.status === 'INSUFFICIENT_EVIDENCE' || m.status === 'REQUIRES_OFFICER_REVIEW').length;
   const nonCompliant = complianceItems.filter((m: any) => m.status === 'NON_COMPLIANT').length;
 
+  const complianceSummary = {
+    total: totalMatches,
+    compliant: verifiedMatches,
+    reviewRequired,
+    nonCompliant
+  };
+
   const bidderDisplayName = bid.bidder?.legalName || bid.bidder?.name || 'Bidder ' + bid.id.substring(0, 8);
 
   return (
@@ -190,9 +197,110 @@ export default function BidDetails() {
       {/* Tab Content */}
       <div style={{ paddingBottom: '64px' }}>
         {activeTab === 'overview' && (
-           <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-             <h3 className="text-h3">Overview</h3>
-             <p>Use the Compliance & Evidence tab to evaluate this bid.</p>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+             {/* Key Metrics Grid */}
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+               <div className="card" style={{ padding: '20px' }}>
+                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                   Documents
+                 </div>
+                 <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--color-primary)' }}>
+                   {bid.documents?.length || 0}
+                 </div>
+                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                   {bid.documents?.reduce((acc: number, d: any) => acc + (d.pageCount || 0), 0) || 0} pages total
+                 </div>
+               </div>
+
+               <div className="card" style={{ padding: '20px' }}>
+                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                   Requirements Verified
+                 </div>
+                 <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: complianceSummary.compliant > 0 ? 'var(--color-success)' : 'var(--text-primary)' }}>
+                   {complianceSummary.compliant} / {complianceSummary.total}
+                 </div>
+                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                   {complianceSummary.total > 0 ? `${Math.round((complianceSummary.compliant / complianceSummary.total) * 100)}% compliance rate` : 'Not evaluated yet'}
+                 </div>
+               </div>
+
+               <div className="card" style={{ padding: '20px' }}>
+                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                   Non-Compliant Criteria
+                 </div>
+                 <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: complianceSummary.nonCompliant > 0 ? 'var(--color-error)' : 'var(--color-success)' }}>
+                   {complianceSummary.nonCompliant}
+                 </div>
+                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                   {complianceSummary.reviewRequired} pending review
+                 </div>
+               </div>
+
+               <div className="card" style={{ padding: '20px' }}>
+                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                   Official Determination
+                 </div>
+                 <div style={{ marginTop: '12px' }}>
+                   <StatusBadge status={bid.status || 'SUBMITTED'} />
+                 </div>
+                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                   {bid.status === 'REJECTED' && 'Disqualified by Officer'}
+                   {bid.status === 'APPROVED' && 'Accepted & Qualified'}
+                   {bid.status === 'UNDER_REVIEW' && 'Clarification Requested'}
+                   {(!bid.status || bid.status === 'SUBMITTED') && 'Awaiting Determination'}
+                 </div>
+               </div>
+             </div>
+
+             {/* Bidder & Tender Summary */}
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+               <div className="card">
+                 <h3 className="text-h3" style={{ fontSize: '15px', marginBottom: '16px' }}>Bidder Profile</h3>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+                     <span style={{ color: 'var(--text-muted)' }}>Legal Name</span>
+                     <span style={{ fontWeight: 600 }}>{bid.bidder?.legalName || bid.bidder?.name || 'N/A'}</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+                     <span style={{ color: 'var(--text-muted)' }}>Bid Reference</span>
+                     <span style={{ fontFamily: 'monospace' }}>{bid.id}</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+                     <span style={{ color: 'var(--text-muted)' }}>Submission Date</span>
+                     <span>{new Date(bid.submittedAt || bid.createdAt).toLocaleDateString()}</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                     <span style={{ color: 'var(--text-muted)' }}>Tender Package</span>
+                     <span style={{ fontWeight: 500 }}>{bid.tender?.title || bid.tenderId}</span>
+                   </div>
+                 </div>
+               </div>
+
+               <div className="card">
+                 <h3 className="text-h3" style={{ fontSize: '15px', marginBottom: '16px' }}>Evaluation Actions</h3>
+                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                   {complianceSummary.total > 0 
+                     ? `Automated compliance verification analyzed ${complianceSummary.total} criteria across submitted bid packages.`
+                     : 'Bid documents need to be uploaded and evaluated against tender requirements.'}
+                 </p>
+                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                   <button 
+                     className="btn btn-primary"
+                     onClick={() => setActiveTab('compliance')}
+                     style={{ fontSize: '13px' }}
+                   >
+                     View Compliance & Evidence ({complianceSummary.total})
+                   </button>
+                   <button 
+                     className="btn btn-outline"
+                     onClick={() => setActiveTab('documents')}
+                     style={{ fontSize: '13px' }}
+                   >
+                     Manage Documents ({bid.documents?.length || 0})
+                   </button>
+                 </div>
+               </div>
+             </div>
            </div>
         )}
 

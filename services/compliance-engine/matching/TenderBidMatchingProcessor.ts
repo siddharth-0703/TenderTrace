@@ -18,33 +18,35 @@ export class TenderBidMatchingProcessor {
         const tenderPages = await TenderTextLoader.loadTenderText(tenderId);
         console.log(`[TENDER_TEXT_LOADED] Pages: ${tenderPages.length}`);
 
-        // 2. Detect Tender Requirements
-        const requirementCandidates = TenderRequirementDetector.detectRequirements(tenderPages);
-        console.log(`[REQUIREMENTS_DETECTED] Count: ${requirementCandidates.length}`);
+        // 2. Check if requirements already exist in DB; if not, detect and save them
+        let requirements = await prisma.tenderRequirement.findMany({ where: { tenderId } });
+        if (requirements.length === 0) {
+            const requirementCandidates = TenderRequirementDetector.detectRequirements(tenderPages);
+            console.log(`[REQUIREMENTS_DETECTED] Count: ${requirementCandidates.length}`);
 
-        // 3. Save Requirements to DB (so ComplianceEngine can use them)
-        for (const cand of requirementCandidates) {
-            const rules = {
-                type: "condition",
-                field: cand.field,
-                operator: cand.operator,
-                value: cand.value,
-                currency: cand.currency
-            };
-            
-            await prisma.tenderRequirement.create({
-                data: {
-                    tenderId: tenderId,
-                    type: cand.type,
-                    description: cand.sourceText,
-                    category: "FINANCIAL", // Dummy default for legacy schema
+            for (const cand of requirementCandidates) {
+                const rules = {
+                    type: "condition",
+                    field: cand.field,
                     operator: cand.operator,
-                    sourceDocumentId: cand.documentId,
-                    sourceProvenance: JSON.stringify({ page: cand.pageNumber, originalText: cand.sourceText }),
-                    rules: JSON.stringify(rules), // stringified JSON
-                    aiMetadata: JSON.stringify({ heuristicConfidence: cand.heuristicConfidence })
-                }
-            });
+                    value: cand.value,
+                    currency: cand.currency
+                };
+                
+                await prisma.tenderRequirement.create({
+                    data: {
+                        tenderId: tenderId,
+                        type: cand.type,
+                        description: cand.sourceText,
+                        category: cand.type === 'EMD' || cand.type === 'GST' || cand.type === 'TURNOVER' ? "FINANCIAL" : "TECHNICAL",
+                        operator: cand.operator,
+                        sourceDocumentId: cand.documentId,
+                        sourceProvenance: JSON.stringify({ page: cand.pageNumber, originalText: cand.sourceText }),
+                        rules: JSON.stringify(rules),
+                        aiMetadata: JSON.stringify({ heuristicConfidence: cand.heuristicConfidence })
+                    }
+                });
+            }
         }
 
         // 4. Load Bid Text
@@ -73,7 +75,7 @@ export class TenderBidMatchingProcessor {
         }
 
         // Fetch fresh from DB
-        const requirements = await prisma.tenderRequirement.findMany({ where: { tenderId } });
+        requirements = await prisma.tenderRequirement.findMany({ where: { tenderId } });
         
         // Fetch all documents for this bid
         const bidDocs = await prisma.document.findMany({ where: { bidId } });

@@ -70,7 +70,9 @@ export default function TendersList() {
         const currentStatus = (tender.processingStatus || tender.status || 'DRAFT').toUpperCase();
         if (selectedStatus === 'DRAFT' && currentStatus !== 'DRAFT') return false;
         if (selectedStatus === 'READY' && currentStatus !== 'READY' && currentStatus !== 'PUBLISHED') return false;
-        if (selectedStatus === 'PROCESSING' && !currentStatus.includes('PROCESSING') && !currentStatus.includes('EVALUAT')) return false;
+        if (selectedStatus === 'UNDER_EVALUATION' && currentStatus !== 'UNDER_EVALUATION' && currentStatus !== 'PROCESSING') return false;
+        if (selectedStatus === 'EVALUATED' && currentStatus !== 'EVALUATED') return false;
+        if (selectedStatus === 'AWARD_PENDING' && currentStatus !== 'AWARD_PENDING') return false;
       }
 
       if (selectedDepartment !== 'ALL') {
@@ -127,12 +129,14 @@ export default function TendersList() {
           <select 
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '13px', backgroundColor: 'var(--color-background)', minWidth: '130px' }}
+            style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', fontSize: '13px', backgroundColor: 'var(--color-background)', minWidth: '140px' }}
           >
             <option value="ALL">All Statuses</option>
             <option value="DRAFT">Draft</option>
             <option value="READY">Published / Ready</option>
-            <option value="PROCESSING">Under Evaluation</option>
+            <option value="UNDER_EVALUATION">Under Evaluation</option>
+            <option value="EVALUATED">Evaluated / Concluded</option>
+            <option value="AWARD_PENDING">Award Pending</option>
           </select>
 
           <select 

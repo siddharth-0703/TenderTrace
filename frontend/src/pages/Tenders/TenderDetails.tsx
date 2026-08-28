@@ -16,12 +16,17 @@ export default function TenderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'requirements' | 'bids' | 'compliance' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'documents' | 'bids' | 'requirements' | 'compliance' | 'history' | 'overview'>('documents');
 
   const { data: tender, isLoading, isError, refetch } = useQuery({
     queryKey: ['tender', id],
     queryFn: () => tenderApi.getTenderDetails(id!),
     enabled: !!id,
+    refetchInterval: (query) => {
+      const docs = query.state.data?.documents;
+      const isExtracting = docs?.some((d: any) => d.processingStatus === 'EXTRACTING' || d.processingStatus === 'PROCESSING' || d.processingStatus === 'UPLOADED');
+      return isExtracting ? 1500 : false;
+    }
   });
 
   const { data: activities } = useQuery({
@@ -44,6 +49,7 @@ export default function TenderDetails() {
     mutationFn: () => tenderApi.processPackage(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tender', id] });
+      queryClient.invalidateQueries({ queryKey: ['tenders'] });
       setActiveTab('requirements');
     },
   });

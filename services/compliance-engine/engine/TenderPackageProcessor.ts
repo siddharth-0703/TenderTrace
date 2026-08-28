@@ -1,41 +1,74 @@
 import { PrismaClient } from "@prisma/client";
-import { RequirementProcessor } from "./RequirementProcessor";
+import { TenderTextLoader } from "../text/TenderTextLoader";
+import { TenderRequirementDetector } from "../matching/TenderRequirementDetector";
 import { CrossDocumentAnalyzer } from "../analysis/CrossDocumentAnalyzer";
 import { DocumentClassifier } from "../classification/DocumentClassifier";
 
 const prisma = new PrismaClient();
-const reqProcessor = new RequirementProcessor();
 const crossDocAnalyzer = new CrossDocumentAnalyzer();
 
 export class TenderPackageProcessor {
     async processPackage(tenderId: string, documentIds: string[]) {
-        
         console.log(`[TenderPackageProcessor] Processing ${documentIds.length} documents for tender ${tenderId}...`);
         
-        // 1. Process each document concurrently
-        const processPromises = documentIds.map(async (docId) => {
+        // 1. Classify documents
+        for (const docId of documentIds) {
             const doc = await prisma.document.findUnique({ where: { id: docId } });
-            if (!doc) return;
+            if (doc) {
+                const docClass = DocumentClassifier.classify(doc.filename, "");
+                await prisma.document.update({
+                    where: { id: docId },
+                    data: { documentClass: docClass }
+                });
+                console.log(`[TenderPackageProcessor] Classified ${doc.filename} -> ${docClass}`);
+            }
+        }
 
-            // Classify document
-            const docClass = DocumentClassifier.classify(doc.filename, "");
-            await prisma.document.update({
-                where: { id: docId },
-                data: { documentClass: docClass }
-            });
+        // 2. Load Tender Text from real extracted pages
+        const tenderPages = await TenderTextLoader.loadTenderText(tenderId);
+        console.log(`[TenderPackageProcessor] Loaded ${tenderPages.length} pages`);
 
-            console.log(`[TenderPackageProcessor] Extracted ${doc.filename} -> ${docClass}`);
+        // 3. Detect Real Requirements using TenderRequirementDetector
+        const requirementCandidates = TenderRequirementDetector.detectRequirements(tenderPages);
+        console.log(`[TenderPackageProcessor] Detected ${requirementCandidates.length} requirements`);
+
+        // Clean up old requirements for this tender to prevent duplication
+        await prisma.tenderRequirement.deleteMany({ where: { tenderId } });
+
+        // 4. Save Requirements to DB
+        for (const cand of requirementCandidates) {
+            const rules = {
+                type: "condition",
+                field: cand.field,
+                operator: cand.operator,
+                value: cand.value,
+                currency: cand.currency
+            };
             
-            // Run standard Phase 3 single-document extraction
-            await reqProcessor.processTenderDocument(tenderId, docId, doc.filename);
-        });
+            await prisma.tenderRequirement.create({
+                data: {
+                    tenderId: tenderId,
+                    type: cand.type,
+                    description: cand.sourceText,
+                    category: cand.type === 'EMD' || cand.type === 'GST' || cand.type === 'TURNOVER' ? "FINANCIAL" : "TECHNICAL",
+                    operator: cand.operator,
+                    sourceDocumentId: cand.documentId,
+                    sourceProvenance: JSON.stringify({ page: cand.pageNumber, originalText: cand.sourceText }),
+                    rules: JSON.stringify(rules),
+                    reviewStatus: "EXTRACTED",
+                    aiMetadata: JSON.stringify({ heuristicConfidence: cand.heuristicConfidence })
+                }
+            });
+        }
 
-        await Promise.all(processPromises);
-
-        // 2. Cross-Document Analysis (Corrigenda, Conflicts, Deduplication)
+        // 5. Cross-Document Analysis (Corrigenda, Conflicts, Deduplication)
         console.log(`[TenderPackageProcessor] Running Cross-Document Analysis...`);
-        await crossDocAnalyzer.analyzeTenderPackage(tenderId);
+        try {
+            await crossDocAnalyzer.analyzeTenderPackage(tenderId);
+        } catch (err) {
+            console.error(`[TenderPackageProcessor] CrossDocAnalyzer error:`, err);
+        }
 
-        console.log(`[TenderPackageProcessor] Package analysis complete.`);
+        console.log(`[TenderPackageProcessor] Package analysis complete. Requirements saved: ${requirementCandidates.length}`);
     }
 }

@@ -408,15 +408,27 @@ app.get("/api/documents/:documentId/text", async (req, res) => {
 app.post("/api/tenders/:id/process-package", async (req, res) => {
     try {
         const tenderId = req.params.id;
-        // Fetch all documents for this tender that haven't been fully processed
+        // Fetch all documents for this tender
         const docs = await prisma.document.findMany({
-            where: { tenderId, processingStatus: { in: ["UPLOADED", "SUCCESS"] } }
+            where: { tenderId }
         });
         
-        const docIds = docs.map(d => d.id);
-        if (docIds.length === 0) {
-            return res.status(400).json({ error: "No documents to process" });
+        if (docs.length === 0) {
+            return res.status(400).json({ error: "No documents found for this tender package." });
         }
+
+        // 1. Ensure any document still in UPLOADED or EXTRACTING is fully processed first
+        for (const doc of docs) {
+            if (doc.processingStatus !== "SUCCESS" && doc.processingStatus !== "PROCESSED") {
+                try {
+                    await PdfExtractionService.processDocument(doc.id, 'TENDER', tenderId);
+                } catch (e) {
+                    console.error(`Document extraction error for ${doc.id}:`, e);
+                }
+            }
+        }
+
+        const docIds = docs.map(d => d.id);
 
         await ActivityLogger.log({
             tenderId,
@@ -426,6 +438,12 @@ app.post("/api/tenders/:id/process-package", async (req, res) => {
 
         // Trigger Phase 4 Package Processor
         await packageProcessor.processPackage(tenderId, docIds);
+
+        // Update tender status
+        await prisma.tender.update({
+            where: { id: tenderId },
+            data: { status: "READY" }
+        });
         
         await ActivityLogger.log({
             tenderId,
@@ -433,7 +451,12 @@ app.post("/api/tenders/:id/process-package", async (req, res) => {
             message: `Tender package processed successfully`
         });
 
-        res.json({ message: "Package processing completed successfully." });
+        const requirements = await prisma.tenderRequirement.findMany({
+            where: { tenderId },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        res.json({ message: "Package processing completed successfully.", count: requirements.length, requirements });
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
@@ -590,6 +613,21 @@ app.post("/api/bids/:id/decision", async (req, res) => {
 app.post("/api/bids/:id/process-evidence", async (req, res) => {
     try {
         const bidId = req.params.id;
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+            include: { documents: true }
+        });
+        if (bid) {
+            for (const doc of bid.documents) {
+                if (doc.processingStatus !== 'SUCCESS' && doc.processingStatus !== 'PROCESSED') {
+                    try {
+                        await PdfExtractionService.processDocument(doc.id, 'BID', bidId);
+                    } catch (e) {
+                        console.error(`Bid doc extraction error for ${doc.id}:`, e);
+                    }
+                }
+            }
+        }
         await bidProcessor.processBid(bidId);
         res.json({ message: "Evidence processed and compliance evaluated successfully." });
     } catch (err: any) {
