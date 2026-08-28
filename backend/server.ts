@@ -1,23 +1,16 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-<<<<<<< HEAD
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-=======
->>>>>>> origin/main
 import { PrismaClient } from "@prisma/client";
 import { PdfExtractionService } from "./services/pdfExtractionService";
 import { ComplianceEngine } from "../services/compliance-engine/engine/ComplianceEngine";
-<<<<<<< HEAD
-import { MockFraudAnalysisService } from "../services/fraud-engine/mock/MockFraudAnalysisService";
+import { FraudEngine } from "../services/fraud-engine/FraudEngine";
 import { TenderPackageProcessor } from "../services/compliance-engine/engine/TenderPackageProcessor";
 import { BidComplianceProcessor } from "../services/compliance-engine/evidence/BidComplianceProcessor";
-=======
-import { FraudEngine } from "../services/fraud-engine/FraudEngine";
->>>>>>> origin/main
 
 export class ActivityLogger {
     static async log(data: {
@@ -61,8 +54,7 @@ const upload = multer({ storage });
 
 const prisma = new PrismaClient();
 const complianceEngine = new ComplianceEngine();
-<<<<<<< HEAD
-const fraudEngine = new MockFraudAnalysisService();
+const fraudEngine = new FraudEngine();
 const packageProcessor = new TenderPackageProcessor();
 const bidProcessor = new BidComplianceProcessor();
 
@@ -124,9 +116,6 @@ function computeTenderStatus(tender: any): string {
 
     return tender.status || "DRAFT";
 }
-=======
-const fraudEngine = new FraudEngine();
->>>>>>> origin/main
 
 // --- TENDER APIs ---
 app.get("/api/tenders", async (req, res) => {
