@@ -4,6 +4,7 @@ import Topbar from './components/layout/Topbar';
 import Dashboard from './pages/Dashboard';
 import FraudRiskDashboard from './pages/FraudRisk/FraudRiskDashboard';
 import FraudRiskAnalysis from './pages/FraudRisk/FraudRiskAnalysis';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -27,7 +28,7 @@ export default function App() {
               <Route path="/tenders"       element={<PlaceholderPage title="Tenders" />} />
               <Route path="/bids"          element={<PlaceholderPage title="Bids" />} />
               <Route path="/compliance"    element={<PlaceholderPage title="Compliance Engine" />} />
-              <Route path="/settings"      element={<PlaceholderPage title="Settings" />} />
+              <Route path="/settings"      element={<SettingsPage />} />
 
               {/* Fraud & Risk module */}
               <Route path="/fraud-risk"                element={<FraudRiskDashboard />} />

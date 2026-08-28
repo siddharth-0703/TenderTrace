@@ -1,0 +1,426 @@
+[1mdiff --git a/frontend/src/App.tsx b/frontend/src/App.tsx[m
+[1mindex a4bd999..7a1ae84 100644[m
+[1m--- a/frontend/src/App.tsx[m
+[1m+++ b/frontend/src/App.tsx[m
+[36m@@ -4,6 +4,7 @@[m [mimport Topbar from './components/layout/Topbar';[m
+ import Dashboard from './pages/Dashboard';[m
+ import FraudRiskDashboard from './pages/FraudRisk/FraudRiskDashboard';[m
+ import FraudRiskAnalysis from './pages/FraudRisk/FraudRiskAnalysis';[m
+[32m+[m[32mimport SettingsPage from './pages/Settings/SettingsPage';[m
+ [m
+ function PlaceholderPage({ title }: { title: string }) {[m
+   return ([m
+[36m@@ -27,7 +28,7 @@[m [mexport default function App() {[m
+               <Route path="/tenders"       element={<PlaceholderPage title="Tenders" />} />[m
+               <Route path="/bids"          element={<PlaceholderPage title="Bids" />} />[m
+               <Route path="/compliance"    element={<PlaceholderPage title="Compliance Engine" />} />[m
+[31m-              <Route path="/settings"      element={<PlaceholderPage title="Settings" />} />[m
+[32m+[m[32m              <Route path="/settings"      element={<SettingsPage />} />[m
+ [m
+               {/* Fraud & Risk module */}[m
+               <Route path="/fraud-risk"                element={<FraudRiskDashboard />} />[m
+[1mdiff --git a/frontend/src/main.tsx b/frontend/src/main.tsx[m
+[1mindex 54c622a..8668e0c 100644[m
+[1m--- a/frontend/src/main.tsx[m
+[1m+++ b/frontend/src/main.tsx[m
+[36m@@ -4,6 +4,7 @@[m [mimport './styles/tokens.css'[m
+ import './styles/global.css'[m
+ import './styles/components.css'[m
+ import './styles/layout.css'[m
+[32m+[m[32mimport './styles/settings.css'[m
+ import App from './App.tsx'[m
+ [m
+ createRoot(document.getElementById('root')!).render([m
+[1mdiff --git a/frontend/src/pages/Settings/SettingsPage.tsx b/frontend/src/pages/Settings/SettingsPage.tsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..e46d514[m
+[1m--- /dev/null[m
+[1m+++ b/frontend/src/pages/Settings/SettingsPage.tsx[m
+[36m@@ -0,0 +1,263 @@[m
+[32m+[m[32mimport React, { useState, useEffect, useRef } from 'react';[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  Settings as SettingsIcon,[m
+[32m+[m[32m  Sliders,[m
+[32m+[m[32m  ShieldCheck,[m
+[32m+[m[32m  ShieldAlert,[m
+[32m+[m[32m  Save,[m
+[32m+[m[32m  Download,[m
+[32m+[m[32m  Upload,[m
+[32m+[m[32m  CheckCircle2,[m
+[32m+[m[32m  AlertCircle[m
+[32m+[m[32m} from 'lucide-react';[m
+[32m+[m[32mimport type { AppSettings, GeneralSettings, ComplianceSettings, FraudDetectionSettings } from '../../types/settings';[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  loadSettings,[m
+[32m+[m[32m  saveSettings,[m
+[32m+[m[32m  resetSettingsToDefaults,[m
+[32m+[m[32m  exportSettingsAsJson,[m
+[32m+[m[32m  importSettingsFromJson[m
+[32m+[m[32m} from '../../services/settingsStorage';[m
+[32m+[m
+[32m+[m[32mimport GeneralSettingsSection from './sections/GeneralSettingsSection';[m
+[32m+[m[32mimport ComplianceSettingsSection from './sections/ComplianceSettingsSection';[m
+[32m+[m[32mimport FraudDetectionSettingsSection from './sections/FraudDetectionSettingsSection';[m
+[32m+[m
+[32m+[m[32mtype TabKey = 'general' | 'compliance' | 'fraudDetection';[m
+[32m+[m
+[32m+[m[32mexport default function SettingsPage() {[m
+[32m+[m[32m  const [activeTab, setActiveTab] = useState<TabKey>('general');[m
+[32m+[m[32m  const [currentSettings, setCurrentSettings] = useState<AppSettings>(loadSettings());[m
+[32m+[m[32m  const [savedSettings, setSavedSettings] = useState<AppSettings>(loadSettings());[m
+[32m+[m[32m  const [isDirty, setIsDirty] = useState<boolean>(false);[m
+[32m+[m[32m  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);[m
+[32m+[m
+[32m+[m[32m  const fileInputRef = useRef<HTMLInputElement>(null);[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    const isDifferent = JSON.stringify(currentSettings) !== JSON.stringify(savedSettings);[m
+[32m+[m[32m    setIsDirty(isDifferent);[m
+[32m+[m[32m  }, [currentSettings, savedSettings]);[m
+[32m+[m
+[32m+[m[32m  const showToast = (message: string, type: 'success' | 'error' = 'success') => {[m
+[32m+[m[32m    setToast({ message, type });[m
+[32m+[m[32m    setTimeout(() => {[m
+[32m+[m[32m      setToast(null);[m
+[32m+[m[32m    }, 4000);[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleSave = () => {[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      saveSettings(currentSettings);[m
+[32m+[m[32m      setSavedSettings(currentSettings);[m
+[32m+[m[32m      setIsDirty(false);[m
+[32m+[m[32m      showToast('Settings saved successfully and applied across evaluation pipelines.');[m
+[32m+[m[32m    } catch (err: any) {[m
+[32m+[m[32m      showToast(`Error saving settings: ${err.message}`, 'error');[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleDiscard = () => {[m
+[32m+[m[32m    setCurrentSettings(savedSettings);[m
+[32m+[m[32m    setIsDirty(false);[m
+[32m+[m[32m    showToast('Unsaved changes discarded.', 'success');[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleResetAll = () => {[m
+[32m+[m[32m    const fresh = resetSettingsToDefaults();[m
+[32m+[m[32m    setCurrentSettings(fresh);[m
+[32m+[m[32m    setSavedSettings(fresh);[m
+[32m+[m[32m    setIsDirty(false);[m
+[32m+[m[32m    showToast('All settings reset to standard GeM procurement defaults.');[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleExport = () => {[m
+[32m+[m[32m    exportSettingsAsJson(currentSettings);[m
+[32m+[m[32m    showToast('Configuration exported as JSON.');[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleImportClick = () => {[m
+[32m+[m[32m    fileInputRef.current?.click();[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {[m
+[32m+[m[32m    const file = e.target.files?.[0];[m
+[32m+[m[32m    if (!file) return;[m
+[32m+[m
+[32m+[m[32m    const reader = new FileReader();[m
+[32m+[m[32m    reader.onload = (event) => {[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const text = event.target?.result as string;[m
+[32m+[m[32m        const imported = importSettingsFromJson(text);[m
+[32m+[m[32m        setCurrentSettings(imported);[m
+[32m+[m[32m        setSavedSettings(imported);[m
+[32m+[m[32m        setIsDirty(false);[m
+[32m+[m[32m        showToast('Settings imported and applied successfully.');[m
+[32m+[m[32m      } catch (err: any) {[m
+[32m+[m[32m        showToast(err.message || 'Failed to import JSON file', 'error');[m
+[32m+[m[32m      }[m
+[32m+[m[32m    };[m
+[32m+[m[32m    reader.readAsText(file);[m
+[32m+[m[32m    e.target.value = '';[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateGeneral = (updated: GeneralSettings) => {[m
+[32m+[m[32m    setCurrentSettings(prev => ({ ...prev, general: updated }));[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateCompliance = (updated: ComplianceSettings) => {[m
+[32m+[m[32m    setCurrentSettings(prev => ({ ...prev, compliance: updated }));[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateFraudDetection = (updated: FraudDetectionSettings) => {[m
+[32m+[m[32m    setCurrentSettings(prev => ({ ...prev, fraudDetection: updated }));[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="settings-container">[m
+[32m+[m[32m      {/* ── Page Header ── */}[m
+[32m+[m[32m      <div className="page-header">[m
+[32m+[m[32m        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>[m
+[32m+[m[32m              <h1>Settings &amp; Rule Engine</h1>[m
+[32m+[m[32m              <span className="badge badge--info">v{currentSettings.version}</span>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <div className="subtitle">[m
+[32m+[m[32m              Manage organization preferences, compliance thresholds, required document rules, and fraud detector sensitivity[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>[m
+[32m+[m[32m            <input[m
+[32m+[m[32m              type="file"[m
+[32m+[m[32m              ref={fileInputRef}[m
+[32m+[m[32m              style={{ display: 'none' }}[m
+[32m+[m[32m              accept=".json,application/json"[m
+[32m+[m[32m              onChange={handleFileChange}[m
+[32m+[m[32m            />[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              className="btn btn--secondary btn--sm"[m
+[32m+[m[32m              onClick={handleImportClick}[m
+[32m+[m[32m              title="Import policy from JSON"[m
+[32m+[m[32m            >[m
+[32m+[m[32m              <Upload size={14} />[m
+[32m+[m[32m              Import JSON[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              className="btn btn--secondary btn--sm"[m
+[32m+[m[32m              onClick={handleExport}[m
+[32m+[m[32m              title="Export policy backup"[m
+[32m+[m[32m            >[m
+[32m+[m[32m              <Download size={14} />[m
+[32m+[m[32m              Export JSON[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              className="btn btn--primary btn--sm"[m
+[32m+[m[32m              onClick={handleSave}[m
+[32m+[m[32m              disabled={!isDirty}[m
+[32m+[m[32m            >[m
+[32m+[m[32m              <Save size={14} />[m
+[32m+[m[32m              Save Changes[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      {/* ── Toast Notification Banner ── */}[m
+[32m+[m[32m      {toast && ([m
+[32m+[m[32m        <div className={`toast-message toast-message--${toast.type}`}>[m
+[32m+[m[32m          {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}[m
+[32m+[m[32m          <span>{toast.message}</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      )}[m
+[32m+[m
+[32m+[m[32m      {/* ── Navigation Tabs ── */}[m
+[32m+[m[32m      <div className="settings-tabs">[m
+[32m+[m[32m        <button[m
+[32m+[m[32m          type="button"[m
+[32m+[m[32m          className={`settings-tab-btn ${activeTab === 'general' ? 'active' : ''}`}[m
+[32m+[m[32m          onClick={() => setActiveTab('general')}[m
+[32m+[m[32m        >[m
+[32m+[m[32m          <Sliders size={16} />[m
+[32m+[m[32m          General[m
+[32m+[m[32m          <span className="settings-tab-badge">3</span>[m
+[32m+[m[32m        </button>[m
+[32m+[m
+[32m+[m[32m        <button[m
+[32m+[m[32m          type="button"[m
+[32m+[m[32m          className={`settings-tab-btn ${activeTab === 'compliance' ? 'active' : ''}`}[m
+[32m+[m[32m          onClick={() => setActiveTab('compliance')}[m
+[32m+[m[32m        >[m
+[32m+[m[32m          <ShieldCheck size={16} />[m
+[32m+[m[32m          Compliance[m
+[32m+[m[32m          <span className="settings-tab-badge">4</span>[m
+[32m+[m[32m        </button>[m
+[32m+[m
+[32m+[m[32m        <button[m
+[32m+[m[32m          type="button"[m
+[32m+[m[32m          className={`settings-tab-btn ${activeTab === 'fraudDetection' ? 'active' : ''}`}[m
+[32m+[m[32m          onClick={() => setActiveTab('fraudDetection')}[m
+[32m+[m[32m        >[m
+[32m+[m[32m          <ShieldAlert size={16} />[m
+[32m+[m[32m          Fraud Detection[m
+[32m+[m[32m          <span className="settings-tab-badge">5</span>[m
+[32m+[m[32m        </button>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      {/* ── Tab Content ── */}[m
+[32m+[m[32m      {activeTab === 'general' && ([m
+[32m+[m[32m        <GeneralSettingsSection[m
+[32m+[m[32m          data={currentSettings.general}[m
+[32m+[m[32m          onChange={updateGeneral}[m
+[32m+[m[32m        />[m
+[32m+[m[32m      )}[m
+[32m+[m
+[32m+[m[32m      {activeTab === 'compliance' && ([m
+[32m+[m[32m        <ComplianceSettingsSection[m
+[32m+[m[32m          data={currentSettings.compliance}[m
+[32m+[m[32m          onChange={updateCompliance}[m
+[32m+[m[32m        />[m
+[32m+[m[32m      )}[m
+[32m+[m
+[32m+[m[32m      {activeTab === 'fraudDetection' && ([m
+[32m+[m[32m        <FraudDetectionSettingsSection[m
+[32m+[m[32m          data={currentSettings.fraudDetection}[m
+[32m+[m[32m          onChange={updateFraudDetection}[m
+[32m+[m[32m          onResetDefaults={handleResetAll}[m
+[32m+[m[32m        />[m
+[32m+[m[32m      )}[m
+[32m+[m
+[32m+[m[32m      {/* ── Sticky Action Bar (visible when changes are pending) ── */}[m
+[32m+[m[32m      {isDirty && ([m
+[32m+[m[32m        <div className="settings-sticky-footer">[m
+[32m+[m[32m          <div className="settings-dirty-badge">[m
+[32m+[m[32m            <SettingsIcon size={14} className="spinner" />[m
+[32m+[m[32m            You have unsaved changes in your rule configuration[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              className="btn btn--secondary"[m
+[32m+[m[32m              onClick={handleDiscard}[m
+[32m+[m[32m            >[m
+[32m+[m[32m              Discard Changes[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              className="btn btn--primary"[m
+[32m+[m[32m              onClick={handleSave}[m
+[32m+[m[32m            >[m
+[32m+[m[32m              <Save size={16} />[m
+[32m+[m[32m              Save &amp; Apply Changes[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      )}[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[1mdiff --git a/frontend/src/pages/Settings/sections/ComplianceSettingsSection.tsx b/frontend/src/pages/Settings/sections/ComplianceSettingsSection.tsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a3de6ac[m
+[1m--- /dev/null[m
+[1m+++ b/frontend/src/pages/Settings/sections/ComplianceSettingsSection.tsx[m
+[36m@@ -0,0 +1,692 @@[m
+[32m+[m[32mimport React, { useState } from 'react';[m
+[32m+[m[32mimport { ShieldCheck, FileCheck, CheckCircle2, SlidersHorizontal, Plus, Trash2, AlertTriangle } from 'lucide-react';[m
+[32m+[m[32mimport type { ComplianceSettings, RequiredDocumentRule } from '../../../types/settings';[m
+[32m+[m
+[32m+[m[32minterface Props {[m
+[32m+[m[32m  data: ComplianceSettings;[m
+[32m+[m[32m  onChange: (updated: ComplianceSettings) => void;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport default function ComplianceSettingsSection({ data, onChange }: Props) {[m
+[32m+[m[32m  const [showAddDocModal, setShowAddDocModal] = useState(false);[m
+[32m+[m[32m  const [newDoc, setNewDoc] = useState<Partial<RequiredDocumentRule>>({[m
+[32m+[m[32m    name: '',[m
+[32m+[m[32m    code: '',[m
+[32m+[m[32m    category: 'TECHNICAL',[m
+[32m+[m[32m    isMandatory: true,[m
+[32m+[m[32m    minOcrConfidence: 80,[m
+[32m+[m[32m    validityBufferDays: 60,[m
+[32m+[m[32m    allowedFileTypes: ['pdf'],[m
+[32m+[m[32m    description: ''[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  const updateThresholds = (field: keyof ComplianceSettings['thresholds'], value: any) => {[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      thresholds: {[m
+[32m+[m[32m        ...data.thresholds,[m
+[32m+[m[32m        [field]: value[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateVerification = (field: keyof ComplianceSettings['verification'], value: any) => {[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      verification: {[m
+[32m+[m[32m        ...data.verification,[m
+[32m+[m[32m        [field]: value[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateConfig = (field: keyof ComplianceSettings['configuration'], value: any) => {[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      configuration: {[m
+[32m+[m[32m        ...data.configuration,[m
+[32m+[m[32m        [field]: value[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleUpdateDoc = (index: number, field: keyof RequiredDocumentRule, value: any) => {[m
+[32m+[m[32m    const updated = [...data.requiredDocuments];[m
+[32m+[m[32m    updated[index] = {[m
+[32m+[m[32m      ...updated[index],[m
+[32m+[m[32m      [field]: value[m
+[32m+[m[32m    };[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      requiredDocuments: updated[m
+[32m+[m[32m    });[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleDeleteDoc = (id: string) => {[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      requiredDocuments: data.requiredDocuments.filter(d => d.id !== id)[m
+[32m+[m[32m    });[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleAddDocument = (e: React.FormEvent) => {[m
+[32m+[m[32m    e.preventDefault();[m
+[32m+[m[32m    if (!newDoc.name || !newDoc.code) return;[m
+[32m+[m
+[32m+[m[32m    const docToAdd: RequiredDocumentRule = {[m
+[32m+[m[32m      id: `doc-custom-${Date.now()}`,[m
+[32m+[m[32m      name: newDoc.name,[m
+[32m+[m[32m      code: newDoc.code.toUpperCase().replace(/\s+/g, '_'),[m
+[32m+[m[32m      category: newDoc.category || 'TECHNICAL',[m
+[32m+[m[32m      isMandatory: !!newDoc.isMandatory,[m
+[32m+[m[32m      minOcrConfidence: Number(newDoc.minOcrConfidence) || 75,[m
+[32m+[m[32m      validityBufferDays: Number(newDoc.validityBufferDays) || 30,[m
+[32m+[m[32m      allowedFileTypes: newDoc.allowedFileTypes || ['pdf'],[m
+[32m+[m[32m      description: newDoc.description || ''[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    onChange({[m
+[32m+[m[32m      ...data,[m
+[32m+[m[32m      requiredDocuments: [...data.requiredDocuments, docToAdd][m
+[32m+[m[32m    });[m
+[32m+[m
+[32m+[m[32m    setNewDoc({[m
+[32m+[m[32m      name: '',[m
+[32m+[m[32m      code: '',[m
+[32m+[m[32m      category: 'TECHNICAL',[m
+[32m+[m[32m      isMandatory: true,[m
+[32m+[m[32m      minOcrConfidence: 80,[m
+[32m+[m[32m      validityBufferDays: 60,[m
+[32m+[m[32m      allowedFileTypes: ['pdf'],[m
+[32m+[m[32m      description: ''[m
+[32m+[m[32m    });[m
+[32m+[m[32m    setShowAddDocModal(false);[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const totalPillarWeights =[m
+[32m+[m[32m    Number(data.configuration.eligibilityWeight) +[m
+[32m+[m[32m    Number(data.configuration.technicalWeight) +[m
+[32m+[m[32m    Number(data.configuration.financialWeight);[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="settings-section">[m
+[32m+[m[32m      {/* ── Sub-nav anchors ── */}[m
+[32m+[m[32m      <div className="settings-subnav">[m
+[32m+[m[32m        <a href="#compliance-thresholds" className="settings-subnav-pill">Compliance Thresholds</a>[m
+[32m+[m[32m        <a href="#required-documents" className="settings-subnav-pill">Required Document Rules</a>[m
+[32m+[m[32m        <a href="#verification-preferences" className="settings-subnav-pill">Verification Preferences</a>[m
+[32m+[m[32m        <a href="#compliance
